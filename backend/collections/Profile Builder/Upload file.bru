@@ -1,0 +1,25 @@
+meta {
+  name: Upload file
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{Host}}/api/documents/upload
+  body: multipartForm
+  auth: inherit
+}
+
+body:multipart-form {
+  file: @file(/Users/luan/Study/Jobs/Cover Letter/AutoDesk/AutoDesk_LiamDo_cover_letter.docx) @contentType(application/pdf)
+  documentType: COVER_LETTER
+}
+
+body:file {
+  file: @file(/Users/luan/Study/Jobs/Resume/LiamDo_resume_2.pdf) @contentType(application/pdf)
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

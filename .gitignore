@@ -1,0 +1,92 @@
+# ══════════════════════════════════════════════════════════
+# Profile Builder - Root .gitignore
+# ══════════════════════════════════════════════════════════
+
+# ── Environment Variables & Secrets ───────────────────────
+.env
+.env.*
+*.env
+!*.env.example
+docker-compose.override.yml
+**/src/main/resources/application-local.yml
+**/src/main/resources/application-local.properties
+
+# ── API Keys & Credentials ────────────────────────────────
+*.pem
+*.key
+*.p12
+*.jks
+**/secrets/
+credentials.json
+auth.json
+
+# ── Backend (Java/Spring Boot) ────────────────────────────
+backend/target/
+backend/.idea/
+backend/*.iml
+backend/.classpath
+backend/.project
+backend/.settings/
+backend/.factorypath
+backend/*.log
+backend/logs/
+backend/src/main/resources/uploads/
+
+# ── Frontend (Node/React) ─────────────────────────────────
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+frontend/.vite/
+frontend/.next/
+frontend/.nuxt/
+frontend/.cache/
+frontend/coverage/
+frontend/.env.local
+frontend/.env.*.local
+frontend/yarn-error.log
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/pnpm-debug.log*
+
+# ── IDE & Editors ─────────────────────────────────────────
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+.eclipse/
+*.sublime-project
+*.sublime-workspace
+*.swp
+*.swo
+*~
+
+# ── OS Specific ───────────────────────────────────────────
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# ── Database ──────────────────────────────────────────────
+*.db
+*.sqlite
+*.sqlite3
+/db/*.sql
+/db/dumps/
+
+# ── Logs ──────────────────────────────────────────────────
+*.log
+logs/
+*.log.*
+
+# ── Temporary & Cache ─────────────────────────────────────
+tmp/
+temp/
+*.tmp
+*.bak
+*.swp
+.cache/

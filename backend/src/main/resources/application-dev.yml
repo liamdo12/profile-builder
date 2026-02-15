@@ -1,0 +1,17 @@
+# ── Dev Profile Overrides ─────────────────────────────────
+spring:
+  datasource:
+    url: jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+
+  jpa:
+    hibernate:
+      ddl-auto: ${JPA_DDL_AUTO}
+    show-sql: true
+
+langchain4j:
+  open-ai:
+    chat-model:
+      log-requests: true
+      log-responses: true
