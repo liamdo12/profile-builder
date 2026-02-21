@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
 import type { HrValidationResponse } from '@/types/smart-resume'
+import { RecommendationCard } from './recommendation-card'
 
 interface HrValidationPanelProps {
   validation: HrValidationResponse
@@ -21,7 +22,7 @@ function ScoreRow({ label, score }: { label: string; score: number }) {
 // Displays HR AI validation scores, strengths, gaps, and recommendations
 export function HrValidationPanel({ validation }: HrValidationPanelProps) {
   return (
-    <Card className="mt-8">
+    <Card>
       <CardHeader>
         <CardTitle>HR Validation Report</CardTitle>
       </CardHeader>
@@ -61,11 +62,13 @@ export function HrValidationPanel({ validation }: HrValidationPanelProps) {
         )}
 
         {validation.recommendations.length > 0 && (
-          <div className="mt-4">
-            <p className="font-semibold text-sm mb-2">Recommendations</p>
-            <ol className="list-decimal pl-5 space-y-1 text-sm text-muted-foreground">
-              {validation.recommendations.map((r, i) => <li key={i}>{r}</li>)}
-            </ol>
+          <div className="mt-6">
+            <p className="font-semibold text-sm mb-3">Recommendations</p>
+            <div className="space-y-3">
+              {validation.recommendations.map((rec, i) => (
+                <RecommendationCard key={i} recommendation={rec} />
+              ))}
+            </div>
           </div>
         )}
       </CardContent>

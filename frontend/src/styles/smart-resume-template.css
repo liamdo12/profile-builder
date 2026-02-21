@@ -3,15 +3,12 @@
 .smart-resume-layout {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  max-width: 850px;
-  margin: 0 auto;
+  width: 100%;
 }
 
 .smart-resume-paper {
   width: 100%;
   background: #fff;
-  max-width: 850px;
   padding: 40px 48px;
   font-family: 'Times New Roman', 'Georgia', serif;
   font-size: 11pt;
@@ -129,6 +126,11 @@
   top: 2px;
 }
 
+/* Render <b> tags from AI-generated bullet content as bold */
+.smart-resume-bullet b {
+  font-weight: 700;
+}
+
 .smart-resume-skill-line {
   padding: 1px 0;
   font-size: 10.5pt;
@@ -139,12 +141,6 @@
 }
 
 /* HR Validation Panel */
-.smart-hr-validation {
-  margin-top: 32px;
-  max-width: 850px;
-  width: 100%;
-}
-
 .smart-hr-score-row {
   display: flex;
   align-items: center;
