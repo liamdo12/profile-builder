@@ -29,22 +29,23 @@ spring:
 server:
   port: ${SERVER_PORT}
 
-# ── LangChain4j ───────────────────────────────────────────
-langchain4j:
-  open-ai:
-    chat-model:
-      api-key: ${OPENAI_API_KEY}
-      model-name: ${OPENAI_MODEL}
-      temperature: 0.7
-      log-requests: true
-      log-responses: true
-
 # ── Application ───────────────────────────────────────────
 app:
   upload:
     dir: ${UPLOAD_DIR}
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS}
+  tavily:
+    api-key: ${TAVILY_API_KEY}
+  openai:
+    api-key: ${OPENAI_API_KEY}
+  ai:
+    main-model:
+      model-name: ${OPENAI_MODEL:gpt-4o}
+      temperature: 0.5
+    mini-model:
+      model-name: ${OPENAI_MINI_MODEL:gpt-5.2}
+      temperature: 0.5
 
 # ── Actuator ──────────────────────────────────────────────
 management:

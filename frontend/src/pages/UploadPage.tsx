@@ -1,112 +1,97 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { toast } from 'sonner'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
 import {
-    Upload, Button, Select, Typography, Card, Space, App as AntApp,
-} from 'antd';
-import { InboxOutlined, ArrowLeftOutlined } from '@ant-design/icons';
-import type { UploadFile } from 'antd';
-import { uploadDocument } from '../api/documentApi';
-import type { DocumentType } from '../types/document';
-
-const { Title, Text } = Typography;
-const { Dragger } = Upload;
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { FileUploadDropzone } from '@/components/shared/file-upload-dropzone'
+import { PageHeader } from '@/components/shared/page-header'
+import { uploadDocument } from '../api/documentApi'
+import type { DocumentType } from '../types/document'
 
 export default function UploadPage() {
-    const navigate = useNavigate();
-    const { message } = AntApp.useApp();
-    const [fileList, setFileList] = useState<UploadFile[]>([]);
-    const [documentType, setDocumentType] = useState<DocumentType | undefined>(undefined);
-    const [uploading, setUploading] = useState(false);
+  const navigate = useNavigate()
+  const [files, setFiles] = useState<File[]>([])
+  const [documentType, setDocumentType] = useState<DocumentType | undefined>(undefined)
+  const [uploading, setUploading] = useState(false)
 
-    const handleUpload = async () => {
-        if (!fileList.length) {
-            message.warning('Please select a file');
-            return;
-        }
-        if (!documentType) {
-            message.warning('Please select a document type');
-            return;
-        }
+  const handleUpload = async () => {
+    if (!files.length) {
+      toast.warning('Please select a file')
+      return
+    }
+    if (!documentType) {
+      toast.warning('Please select a document type')
+      return
+    }
 
-        const rawFile = fileList[0]?.originFileObj;
-        if (!rawFile) {
-            message.error('Unable to read the selected file. Please re-select it.');
-            return;
-        }
-        setUploading(true);
+    const rawFile = files[0]
+    if (!rawFile) {
+      toast.error('Unable to read the selected file. Please re-select it.')
+      return
+    }
+    setUploading(true)
 
-        try {
-            await uploadDocument(rawFile, documentType);
-            message.success('Document uploaded successfully');
-            navigate('/');
-        } catch (err: unknown) {
-            const error = err as { response?: { data?: { message?: string } } };
-            message.error(error?.response?.data?.message || 'Upload failed');
-        } finally {
-            setUploading(false);
-        }
-    };
+    try {
+      await uploadDocument(rawFile, documentType)
+      toast.success('Document uploaded successfully')
+      navigate('/')
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } }
+      toast.error(error?.response?.data?.message || 'Upload failed')
+    } finally {
+      setUploading(false)
+    }
+  }
 
-    return (
-        <div style={{ maxWidth: 600, margin: '0 auto', padding: '40px 24px' }}>
-            <Button
-                type="link"
-                icon={<ArrowLeftOutlined />}
-                onClick={() => navigate('/')}
-                style={{ marginBottom: 16, padding: 0 }}
+  return (
+    <div className="mx-auto max-w-full sm:max-w-xl">
+      <PageHeader
+        title="Upload Document"
+        subtitle="Upload your resume or cover letter (PDF, DOC, DOCX — max 2MB)"
+      />
+
+      <Card>
+        <CardContent className="space-y-6 pt-6">
+          <div>
+            <p className="text-sm font-medium mb-2">Document Type</p>
+            <Select
+              value={documentType || ''}
+              onValueChange={(val) => setDocumentType(val as DocumentType)}
             >
-                Back to Documents
-            </Button>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="RESUME">Resume</SelectItem>
+                <SelectItem value="COVER_LETTER">Cover Letter</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-            <Title level={3}>Upload Document</Title>
-            <Text type="secondary" style={{ display: 'block', marginBottom: 24 }}>
-                Upload your resume or cover letter (PDF, DOC, DOCX — max 2MB)
-            </Text>
+          <FileUploadDropzone
+            accept=".pdf,.doc,.docx"
+            files={files}
+            onFilesChange={setFiles}
+            hint="Supports PDF, DOC, DOCX — max 2MB"
+          />
 
-            <Card>
-                <Space direction="vertical" size="large" style={{ width: '100%' }}>
-                    <div>
-                        <Text strong style={{ display: 'block', marginBottom: 8 }}>Document Type</Text>
-                        <Select
-                            placeholder="Select type"
-                            style={{ width: '100%' }}
-                            value={documentType}
-                            onChange={setDocumentType}
-                            options={[
-                                { label: 'Resume', value: 'RESUME' },
-                                { label: 'Cover Letter', value: 'COVER_LETTER' },
-                            ]}
-                        />
-                    </div>
-
-                    <Dragger
-                        fileList={fileList}
-                        beforeUpload={() => false}
-                        onChange={({ fileList: newList }) => setFileList(newList.slice(-1))}
-                        accept=".pdf,.doc,.docx"
-                        maxCount={1}
-                    >
-                        <p className="ant-upload-drag-icon">
-                            <InboxOutlined />
-                        </p>
-                        <p className="ant-upload-text">Click or drag file to this area</p>
-                        <p className="ant-upload-hint">
-                            Supports PDF, DOC, DOCX — max 2MB
-                        </p>
-                    </Dragger>
-
-                    <Button
-                        type="primary"
-                        size="large"
-                        block
-                        loading={uploading}
-                        onClick={handleUpload}
-                        disabled={!fileList.length || !documentType}
-                    >
-                        {uploading ? 'Uploading...' : 'Upload Document'}
-                    </Button>
-                </Space>
-            </Card>
-        </div>
-    );
+          <Button
+            className="w-full"
+            size="lg"
+            disabled={!files.length || !documentType || uploading}
+            onClick={handleUpload}
+          >
+            {uploading ? 'Uploading...' : 'Upload Document'}
+          </Button>
+        </CardContent>
+      </Card>
+    </div>
+  )
 }

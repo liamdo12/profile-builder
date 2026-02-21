@@ -1,0 +1,215 @@
+package com.profilebuilder.service;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.profilebuilder.ai.dto.HrValidationOutput;
+import com.profilebuilder.ai.dto.SmartResumeOutput;
+import com.profilebuilder.exception.ResourceNotFoundException;
+import com.profilebuilder.model.dto.SmartGeneratedResumeResponse;
+import com.profilebuilder.model.entity.Document;
+import com.profilebuilder.model.entity.SmartGeneratedResume;
+import com.profilebuilder.model.entity.SmartHrValidation;
+import com.profilebuilder.repository.DocumentRepository;
+import com.profilebuilder.repository.SmartGeneratedResumeRepository;
+import com.profilebuilder.repository.SmartHrValidationRepository;
+import com.profilebuilder.service.SmartResumeOrchestrationService.OrchestrationResult;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * Main service for smart resume generation, regeneration, and retrieval.
+ * Delegates AI work to SmartResumeOrchestrationService and persists results.
+ */
+@Service
+public class SmartResumeGenerationService {
+
+    private static final Logger log = LoggerFactory.getLogger(SmartResumeGenerationService.class);
+
+    private final SmartGeneratedResumeRepository smartResumeRepository;
+    private final SmartHrValidationRepository hrValidationRepository;
+    private final DocumentRepository documentRepository;
+    private final JdExtractionService jdExtractionService;
+    private final SmartResumeOrchestrationService orchestrationService;
+    private final ObjectMapper objectMapper;
+
+    public SmartResumeGenerationService(SmartGeneratedResumeRepository smartResumeRepository,
+                                        SmartHrValidationRepository hrValidationRepository,
+                                        DocumentRepository documentRepository,
+                                        JdExtractionService jdExtractionService,
+                                        SmartResumeOrchestrationService orchestrationService,
+                                        ObjectMapper objectMapper) {
+        this.smartResumeRepository = smartResumeRepository;
+        this.hrValidationRepository = hrValidationRepository;
+        this.documentRepository = documentRepository;
+        this.jdExtractionService = jdExtractionService;
+        this.orchestrationService = orchestrationService;
+        this.objectMapper = objectMapper;
+    }
+
+    /**
+     * Generates a new smart resume from a job description text and selected document IDs.
+     */
+    public SmartGeneratedResumeResponse generate(String jdText, List<Long> documentIds) {
+        log.info("Generating smart resume for {} document(s)", documentIds.size());
+        List<String> resumeTexts = extractResumeTexts(documentIds);
+
+        OrchestrationResult result = orchestrationService.orchestrate(resumeTexts, jdText);
+
+        SmartGeneratedResume entity = new SmartGeneratedResume();
+        entity.setJdText(jdText);
+        entity.setDocumentIds(documentIds);
+        persistResumeContent(entity, result.resumeOutput());
+        SmartGeneratedResume saved = smartResumeRepository.save(entity);
+
+        if (result.validationOutput() != null) {
+            SmartHrValidation validation = mapToValidationEntity(result.validationOutput(), saved.getId());
+            hrValidationRepository.save(validation);
+        }
+
+        log.info("Smart resume saved with id={}", saved.getId());
+        return toResponse(saved, result);
+    }
+
+    /**
+     * Regenerates an existing smart resume using the same JD and document IDs.
+     */
+    @Transactional
+    public SmartGeneratedResumeResponse regenerate(Long id) {
+        SmartGeneratedResume entity = smartResumeRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Smart resume not found with id: " + id));
+
+        log.info("Regenerating smart resume id={}", id);
+        List<String> resumeTexts = extractResumeTexts(entity.getDocumentIds());
+        OrchestrationResult result = orchestrationService.orchestrate(resumeTexts, entity.getJdText());
+
+        persistResumeContent(entity, result.resumeOutput());
+        smartResumeRepository.save(entity);
+
+        // Replace old validation with new one
+        hrValidationRepository.findBySmartResumeId(id).ifPresent(hrValidationRepository::delete);
+        if (result.validationOutput() != null) {
+            hrValidationRepository.save(mapToValidationEntity(result.validationOutput(), id));
+        }
+
+        log.info("Smart resume id={} regenerated successfully", id);
+        return toResponse(entity, result);
+    }
+
+    /**
+     * Retrieves a previously generated smart resume with its validation data.
+     */
+    public SmartGeneratedResumeResponse getSmartResume(Long id) {
+        SmartGeneratedResume entity = smartResumeRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Smart resume not found with id: " + id));
+
+        SmartResumeOutput resumeOutput = parseResumeContent(entity.getResumeContent());
+        SmartHrValidation validationEntity = hrValidationRepository.findBySmartResumeId(id).orElse(null);
+
+        SmartGeneratedResumeResponse response = new SmartGeneratedResumeResponse();
+        response.setId(entity.getId());
+        response.setResumeContent(resumeOutput);
+        response.setCreatedAt(entity.getCreatedAt());
+        if (validationEntity != null) {
+            response.setValidation(mapToValidationResponse(validationEntity));
+        }
+        return response;
+    }
+
+    // ── Private helpers ──────────────────────────────────────
+
+    /** Extracts text from each document PDF on disk. */
+    private List<String> extractResumeTexts(List<Long> documentIds) {
+        List<String> texts = new ArrayList<>();
+        for (Long docId : documentIds) {
+            Document doc = documentRepository.findById(docId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Document not found with id: " + docId));
+            String text = jdExtractionService.extractTextFromPath(Path.of(doc.getFilePath()));
+            texts.add(text);
+        }
+        return texts;
+    }
+
+    /** Serializes resume output into entity fields. */
+    private void persistResumeContent(SmartGeneratedResume entity, SmartResumeOutput resumeOutput) {
+        try {
+            entity.setResumeContent(objectMapper.writeValueAsString(resumeOutput));
+            entity.setPersonalInfo(objectMapper.writeValueAsString(resumeOutput.getPersonalInfo()));
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to serialize resume content: " + e.getMessage(), e);
+        }
+    }
+
+    /** Deserializes stored JSON back into SmartResumeOutput. */
+    private SmartResumeOutput parseResumeContent(String resumeContentJson) {
+        try {
+            return objectMapper.readValue(resumeContentJson, SmartResumeOutput.class);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to parse stored resume content: " + e.getMessage(), e);
+        }
+    }
+
+    /** Builds the response DTO from a saved entity and fresh orchestration result. */
+    private SmartGeneratedResumeResponse toResponse(SmartGeneratedResume entity, OrchestrationResult result) {
+        SmartGeneratedResumeResponse response = new SmartGeneratedResumeResponse();
+        response.setId(entity.getId());
+        response.setResumeContent(result.resumeOutput());
+        response.setCreatedAt(entity.getCreatedAt());
+        if (result.validationOutput() != null) {
+            response.setValidation(mapToValidationResponseFromOutput(result.validationOutput()));
+        }
+        return response;
+    }
+
+    /** Maps HrValidationOutput DTO to SmartHrValidation entity. */
+    private SmartHrValidation mapToValidationEntity(HrValidationOutput output, Long smartResumeId) {
+        SmartHrValidation entity = new SmartHrValidation();
+        entity.setSmartResumeId(smartResumeId);
+        entity.setOverallScore(output.getOverallScore());
+        entity.setKeywordMatchScore(output.getKeywordMatchScore());
+        entity.setExperienceRelevanceScore(output.getExperienceRelevanceScore());
+        entity.setSkillsAlignmentScore(output.getSkillsAlignmentScore());
+        entity.setResumeQualityScore(output.getResumeQualityScore());
+        entity.setEducationFitScore(output.getEducationFitScore());
+        entity.setGaps(output.getGaps());
+        entity.setStrengths(output.getStrengths());
+        entity.setRecommendations(output.getRecommendations());
+        return entity;
+    }
+
+    /** Maps SmartHrValidation entity to response DTO (used on retrieval). */
+    private SmartGeneratedResumeResponse.HrValidationResponse mapToValidationResponse(SmartHrValidation entity) {
+        SmartGeneratedResumeResponse.HrValidationResponse response =
+                new SmartGeneratedResumeResponse.HrValidationResponse();
+        response.setOverallScore(entity.getOverallScore() != null ? entity.getOverallScore() : 0.0);
+        response.setKeywordMatchScore(entity.getKeywordMatchScore() != null ? entity.getKeywordMatchScore() : 0.0);
+        response.setExperienceRelevanceScore(entity.getExperienceRelevanceScore() != null ? entity.getExperienceRelevanceScore() : 0.0);
+        response.setSkillsAlignmentScore(entity.getSkillsAlignmentScore() != null ? entity.getSkillsAlignmentScore() : 0.0);
+        response.setResumeQualityScore(entity.getResumeQualityScore() != null ? entity.getResumeQualityScore() : 0.0);
+        response.setEducationFitScore(entity.getEducationFitScore() != null ? entity.getEducationFitScore() : 0.0);
+        response.setGaps(entity.getGaps());
+        response.setStrengths(entity.getStrengths());
+        response.setRecommendations(entity.getRecommendations());
+        return response;
+    }
+
+    /** Maps HrValidationOutput DTO directly to response DTO (used after fresh generation). */
+    private SmartGeneratedResumeResponse.HrValidationResponse mapToValidationResponseFromOutput(HrValidationOutput output) {
+        SmartGeneratedResumeResponse.HrValidationResponse response =
+                new SmartGeneratedResumeResponse.HrValidationResponse();
+        response.setOverallScore(output.getOverallScore());
+        response.setKeywordMatchScore(output.getKeywordMatchScore());
+        response.setExperienceRelevanceScore(output.getExperienceRelevanceScore());
+        response.setSkillsAlignmentScore(output.getSkillsAlignmentScore());
+        response.setResumeQualityScore(output.getResumeQualityScore());
+        response.setEducationFitScore(output.getEducationFitScore());
+        response.setGaps(output.getGaps());
+        response.setStrengths(output.getStrengths());
+        response.setRecommendations(output.getRecommendations());
+        return response;
+    }
+}

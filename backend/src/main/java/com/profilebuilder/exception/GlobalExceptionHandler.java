@@ -66,6 +66,15 @@ public class GlobalExceptionHandler {
                 "Maximum upload size exceeded. Limit is 2MB.");
     }
 
+    // ── 503 Service Unavailable ─────────────────────────────
+
+    @ExceptionHandler(dev.langchain4j.exception.LangChain4jException.class)
+    public ResponseEntity<Map<String, Object>> handleAiServiceError(
+            dev.langchain4j.exception.LangChain4jException ex) {
+        return buildResponse(HttpStatus.SERVICE_UNAVAILABLE, "AI Service Unavailable",
+                "The AI service is temporarily unavailable. Please try again later.");
+    }
+
     // ── 500 Internal Server Error (true server errors only) ──
 
     @ExceptionHandler(FileStorageException.class)

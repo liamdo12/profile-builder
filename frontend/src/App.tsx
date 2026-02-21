@@ -1,29 +1,26 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { App as AntApp, ConfigProvider, theme } from 'antd';
-import DocumentListPage from './pages/DocumentListPage';
-import UploadPage from './pages/UploadPage';
-import './App.css';
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { Toaster } from 'sonner'
+import { ThemeProvider } from '@/components/layout/theme-provider'
+import { AppLayout } from '@/components/layout/app-layout'
+import DocumentListPage from './pages/DocumentListPage'
+import UploadPage from './pages/UploadPage'
+import SmartResumeSetupPage from './pages/SmartResumeSetupPage'
+import SmartResumeResultPage from './pages/SmartResumeResultPage'
 
 export default function App() {
   return (
-    <ConfigProvider
-      theme={{
-        algorithm: theme.defaultAlgorithm,
-        token: {
-          colorPrimary: '#4f46e5',
-          borderRadius: 8,
-          fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
-        },
-      }}
-    >
-      <AntApp>
-        <BrowserRouter>
+    <ThemeProvider defaultTheme="dark" storageKey="profile-builder-theme">
+      <BrowserRouter>
+        <AppLayout>
           <Routes>
             <Route path="/" element={<DocumentListPage />} />
             <Route path="/upload" element={<UploadPage />} />
+            <Route path="/smart-resume" element={<SmartResumeSetupPage />} />
+            <Route path="/smart-resume/:smartResumeId" element={<SmartResumeResultPage />} />
           </Routes>
-        </BrowserRouter>
-      </AntApp>
-    </ConfigProvider>
-  );
+        </AppLayout>
+      </BrowserRouter>
+      <Toaster richColors position="top-right" />
+    </ThemeProvider>
+  )
 }

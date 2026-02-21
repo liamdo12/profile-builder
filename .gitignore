@@ -90,3 +90,14 @@ temp/
 *.bak
 *.swp
 .cache/
+
+# -- Others -----------------
+plans/
+examples/
+.claude/
+.opencode/
+.history/
+AGENTS.md
+CLAUDE.md
+**/uploads/
+**/plans/reports/
