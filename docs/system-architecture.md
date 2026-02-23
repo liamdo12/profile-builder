@@ -23,20 +23,25 @@
 │  ┌──────────────────────────────────────────────────────────┐   │
 │  │  REST Controllers                                         │   │
 │  │  ├── DocumentController                                  │   │
-│  │  └── SmartResumeController                               │   │
+│  │  ├── SmartResumeController                               │   │
+│  │  └── CoverLetterController                               │   │
 │  └──────────────────────────────────────────────────────────┘   │
 │  ┌──────────────────────────────────────────────────────────┐   │
 │  │  Business Logic (Services)                               │   │
 │  │  ├── DocumentService                                     │   │
 │  │  ├── JdExtractionService                                 │   │
 │  │  ├── SmartResumeOrchestrationService                     │   │
-│  │  └── SmartResumeGenerationService                        │   │
+│  │  ├── SmartResumeGenerationService                        │   │
+│  │  ├── CoverLetterOrchestrationService                     │   │
+│  │  └── CoverLetterGenerationService                        │   │
 │  └──────────────────────────────────────────────────────────┘   │
 │  ┌──────────────────────────────────────────────────────────┐   │
 │  │  Data Access (Repositories)                              │   │
 │  │  ├── DocumentRepository                                  │   │
 │  │  ├── SmartGeneratedResumeRepository                      │   │
-│  │  └── SmartHrValidationRepository                         │   │
+│  │  ├── SmartHrValidationRepository                         │   │
+│  │  ├── GeneratedCoverLetterRepository                      │   │
+│  │  └── CoverLetterEvaluationRepository                     │   │
 │  └──────────────────────────────────────────────────────────┘   │
 │  ┌──────────────────────────────────────────────────────────┐   │
 │  │  AI Integration Layer                                    │   │
@@ -53,7 +58,9 @@
 │  │  Tables:                                                 │   │
 │  │  ├── documents (uploaded files)                          │   │
 │  │  ├── smart_generated_resumes (AI-generated resumes)      │   │
-│  │  └── smart_hr_validations (HR validation results)        │   │
+│  │  ├── smart_hr_validations (HR validation results)        │   │
+│  │  ├── pb_generated_cover_letters (generated letters)      │   │
+│  │  └── pb_cover_letter_evaluations (evaluation results)    │   │
 │  └──────────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -107,21 +114,82 @@ Backend: SmartResumeController.generateSmartResume()
     │       └─ Save validation results
     │
     ▼
-Frontend: SmartResumeResultPage
+Frontend: SmartResumeResultPage (Two-Column Layout)
     │
-    ├─ Display SmartResumePaper
-    ├─ Show HR validation feedback
-    │
-    ├─ Sections:
+    ├─ Left: SmartResumePaper (sticky)
     │   ├─ Contact info
     │   ├─ Professional summary
-    │   ├─ Experience (enhanced)
+    │   ├─ Experience entries (with <b> highlighted bullets)
     │   ├─ Education
     │   ├─ Skills
     │   └─ Additional sections
+    │   └─ Export to PDF (html2pdf.js)
     │
-    ├─ Export to PDF
-    │   └─ html2pdf.js client-side generation
+    └─ Right: HrValidationPanel (scrollable)
+        │
+        ├─ Recommendation Cards (structured items)
+        │   ├─ Section badge (e.g., "Experience")
+        │   ├─ Type badge (e.g., "enhancement")
+        │   ├─ Original text
+        │   ├─ Suggested improvement
+        │   ├─ Reason explanation
+        │   └─ Copy-to-clipboard button
+        │
+        └─ Overall scores & compliance status
+```
+
+### 2. Cover Letter Generation & Evaluation Flow
+
+```
+User Setup (CoverLetterSetupPage)
+    │
+    ├─ Upload JD file (PDF/PNG)
+    ├─ Select resume document
+    ├─ Select/upload master cover letter
+    │
+    ▼
+Backend: CoverLetterController.generate()
+    │
+    ├─ Extract JD text from file
+    │
+    ├─ CoverLetterOrchestrationService.orchestrate()
+    │   │
+    │   ├─ CompanyResearchAgent.research()
+    │   │   ├─ Tavily web search: extract company info
+    │   │   ├─ Parse: company domain, products, services, tech stack
+    │   │   ├─ Aggregate: blogs, videos, summary
+    │   │   └─ Return: CompanyResearchOutput
+    │   │
+    │   ├─ CoverLetterGeneratorAgent.generate()
+    │   │   ├─ Input: JD text, master letter, company research, resume
+    │   │   ├─ Generate tailored paragraphs (greeting, body, closing, signoff)
+    │   │   ├─ Personalize with company insights
+    │   │   └─ Return: CoverLetterOutput
+    │   │
+    │   └─ CoverLetterGenerationService.save()
+    │       ├─ Persist to pb_generated_cover_letters table
+    │       ├─ Store: coverLetterContent, companyResearch
+    │       └─ Return: CoverLetterResponse
+    │
+    ▼
+Frontend: CoverLetterResultPage (Two-Column Layout)
+    │
+    ├─ Left: CoverLetterDisplay (sticky)
+    │   ├─ Greeting
+    │   ├─ Paragraphs (formatted body text)
+    │   ├─ Closing
+    │   ├─ Sign-off
+    │   └─ Export to PDF
+    │
+    └─ Right: CoverLetterEvaluationPanel (on-demand)
+        │
+        ├─ User triggers: POST /api/cover-letter/{id}/evaluate
+        │
+        └─ CoverLetterEvaluatorAgent.evaluate()
+            ├─ Input: generated letter, JD, company research
+            ├─ Analyze: match percentage, verdict, specific suggestions
+            ├─ Save to pb_cover_letter_evaluations
+            └─ Display: Evaluation feedback with match score
 ```
 
 ## Component Architecture
@@ -164,8 +232,9 @@ Located in `src/components/layout/`:
 ### Resume-Specific Components
 
 Located in `src/components/resume/`:
-- **SmartResumePaper:** AI-generated resume display
-- **HrValidationPanel:** Shows HR validation feedback
+- **SmartResumePaper:** AI-generated resume display with sticky positioning
+- **HrValidationPanel:** Scrollable HR validation feedback with section badges
+- **RecommendationCard:** Individual recommendation display with copy-to-clipboard action
 
 ### Shared Components
 
@@ -198,7 +267,27 @@ Located in `src/components/shared/`:
 - smart_resume_id (FK)
 - validation_results (JSON)
 - ats_score, compliance_score
-- suggestions (JSON array)
+- recommendations (JSON array of RecommendationItem objects)
+  - section, entryIndex, bulletIndex
+  - type (enhancement, warning, info)
+  - original, suggested, reason
+
+**pb_generated_cover_letters**
+- id (PK)
+- user_id (FK)
+- resume_doc_id (FK)
+- master_cover_letter_doc_id (FK)
+- cover_letter_content (JSON: greeting, paragraphs[], closing, signOff)
+- company_research (JSON: name, domain, products, services, techStack, summary)
+- created_at, updated_at
+
+**pb_cover_letter_evaluations**
+- id (PK)
+- cover_letter_id (FK)
+- match_percentage (decimal)
+- verdict (text)
+- suggestions (JSON array of strings)
+- created_at, updated_at
 
 ## AI Integration Architecture
 
@@ -220,12 +309,45 @@ SmartResumeGenerationService
         └─ Use case: Final fallback option
 ```
 
+### Available Agents
+
+**Resume Agents**
+- **ResumeGeneratorAgent** - Multi-mode resume generation (from scratch or apply recommendations)
+- **HrValidatorAgent** - ATS compliance validation with score-based recommendations
+
+**Cover Letter Agents**
+- **CompanyResearchAgent** - Tavily web search to research target company (domain, products, tech stack, blogs, videos)
+- **CoverLetterGeneratorAgent** - Generates personalized cover letter leveraging company research
+- **CoverLetterEvaluatorAgent** - Evaluates cover letter quality, match percentage, and relevance
+
 ### Prompt Management
 
 - Prompts stored in `backend/src/main/resources/prompts/`
 - Organized by function (generation, validation, analysis)
 - Versioned for consistency
 - Parameterized for flexibility
+- Files: resume-generator-system.txt, hr-validator-system.txt, company-research-system.txt, cover-letter-generator-system.txt, cover-letter-evaluator-system.txt
+
+#### Resume Generator Modes
+
+**Mode A: Generate From Scratch**
+- Input: resumeTexts (array), jdText
+- Creates a complete, ATS-optimized resume from raw resume text
+- Applies STAR method, quantity formatting, bold technical term highlighting
+
+**Mode B: Apply Recommendations**
+- Input: currentResume (JSON), jdText, recommendationsToApply (array)
+- Takes an existing resume and applies targeted modifications
+- Preserves non-targeted content exactly
+- Supported operations: modify, add, remove (with entry/bullet indices)
+
+#### HR Validator Score-Based Recommendations
+
+- **Score >= 9.0:** 0 recommendations (resume excellent as-is)
+- **Score 8.0-8.9:** 1-3 high-impact recommendations only
+- **Score < 8.0:** 3-5 recommendations
+
+Each recommendation includes: section, entry/bullet indices, type, original text, suggested text, reason
 
 ### AI Response Processing
 

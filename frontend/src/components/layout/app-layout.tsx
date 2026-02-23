@@ -46,7 +46,7 @@ export function AppLayout({ children }: AppLayoutProps) {
           </Button>
         </header>
         <main className="flex-1 overflow-auto">
-          <div className="px-4 py-6 md:px-6 lg:px-8 mx-auto max-w-screen-xl">
+          <div className="px-4 py-6 md:px-6 lg:px-8">
             {children}
           </div>
         </main>

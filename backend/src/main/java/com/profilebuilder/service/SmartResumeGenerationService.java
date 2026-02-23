@@ -17,6 +17,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.profilebuilder.model.dto.RecommendationItem;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -101,6 +102,33 @@ public class SmartResumeGenerationService {
     }
 
     /**
+     * Applies selected recommendations to an existing smart resume.
+     * Re-generates the resume with recommendations as constraints, then re-validates.
+     */
+    @Transactional
+    public SmartGeneratedResumeResponse applyRecommendations(Long id, List<RecommendationItem> recommendations) {
+        SmartGeneratedResume entity = smartResumeRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Smart resume not found with id: " + id));
+
+        log.info("Applying {} recommendations to smart resume id={}", recommendations.size(), id);
+
+        OrchestrationResult result = orchestrationService.orchestrateWithRecommendations(
+                entity.getResumeContent(), entity.getJdText(), recommendations);
+
+        persistResumeContent(entity, result.resumeOutput());
+        smartResumeRepository.save(entity);
+
+        // Replace old validation with new one
+        hrValidationRepository.findBySmartResumeId(id).ifPresent(hrValidationRepository::delete);
+        if (result.validationOutput() != null) {
+            hrValidationRepository.save(mapToValidationEntity(result.validationOutput(), id));
+        }
+
+        log.info("Smart resume id={} updated with applied recommendations", id);
+        return toResponse(entity, result);
+    }
+
+    /**
      * Retrieves a previously generated smart resume with its validation data.
      */
     public SmartGeneratedResumeResponse getSmartResume(Long id) {
@@ -118,6 +146,13 @@ public class SmartResumeGenerationService {
             response.setValidation(mapToValidationResponse(validationEntity));
         }
         return response;
+    }
+
+    /** Retrieves and parses resume output by ID (used by DOCX service). */
+    public SmartResumeOutput getResumeOutput(Long id) {
+        SmartGeneratedResume entity = smartResumeRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Smart resume not found: " + id));
+        return parseResumeContent(entity.getResumeContent());
     }
 
     // ── Private helpers ──────────────────────────────────────

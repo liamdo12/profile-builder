@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from 'react-router-dom'
-import { FileText, Upload, Rocket } from 'lucide-react'
+import { FileText, Upload, Rocket, Mail } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ThemeToggle } from '@/components/layout/theme-toggle'
 
@@ -7,6 +7,7 @@ const navItems = [
   { title: 'Documents', url: '/', icon: FileText },
   { title: 'Upload', url: '/upload', icon: Upload },
   { title: 'Smart Resume', url: '/smart-resume', icon: Rocket },
+  { title: 'Cover Letter', url: '/cover-letter', icon: Mail },
 ]
 
 export function AppSidebar() {

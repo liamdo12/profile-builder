@@ -2,6 +2,9 @@ package com.profilebuilder.config;
 
 import com.profilebuilder.ai.agent.ResumeGeneratorAgent;
 import com.profilebuilder.ai.agent.HrValidatorAgent;
+import com.profilebuilder.ai.agent.CompanyResearchAgent;
+import com.profilebuilder.ai.agent.CoverLetterGeneratorAgent;
+import com.profilebuilder.ai.agent.CoverLetterEvaluatorAgent;
 import dev.langchain4j.model.chat.ChatModel;
 import org.springframework.beans.factory.annotation.Qualifier;
 import dev.langchain4j.model.openai.OpenAiChatModel;
@@ -83,6 +86,28 @@ public class AiConfig {
     @Bean
     HrValidatorAgent hrValidatorAgent(@Qualifier("miniChatModel") ChatModel miniModel) {
         return AiServices.builder(HrValidatorAgent.class)
+                .chatModel(miniModel)
+                .build();
+    }
+
+    @Bean
+    CompanyResearchAgent companyResearchAgent(ChatModel chatModel, WebSearchTool webSearchTool) {
+        return AiServices.builder(CompanyResearchAgent.class)
+                .chatModel(chatModel)
+                .tools(webSearchTool)
+                .build();
+    }
+
+    @Bean
+    CoverLetterGeneratorAgent coverLetterGeneratorAgent(ChatModel chatModel) {
+        return AiServices.builder(CoverLetterGeneratorAgent.class)
+                .chatModel(chatModel)
+                .build();
+    }
+
+    @Bean
+    CoverLetterEvaluatorAgent coverLetterEvaluatorAgent(@Qualifier("miniChatModel") ChatModel miniModel) {
+        return AiServices.builder(CoverLetterEvaluatorAgent.class)
                 .chatModel(miniModel)
                 .build();
     }

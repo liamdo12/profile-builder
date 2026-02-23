@@ -83,18 +83,50 @@ theme-toggle.tsx         # Light/dark mode switch button
 
 #### Resume Components (`components/resume/`)
 ```
-smart-resume-paper.tsx          # AI-generated resume display
-hr-validation-panel.tsx         # Shows HR validation feedback
+smart-resume-paper.tsx          # AI-generated resume display (sticky column)
+hr-validation-panel.tsx         # HR validation feedback (scrollable column)
+recommendation-card.tsx         # Individual recommendation with actions
 resume-utils.tsx                # Utility functions for resume rendering
+smart-resume-template.css       # Resume-specific styling
 ```
 
 **Core Resume Rendering:**
 ```typescript
-// SmartResumePaper renders AI-generated resume from smart resume data
-<SmartResumePaper
-  resumeData={data}
-  validationFeedback={feedback}
+// Two-column layout with sticky resume
+<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+  <SmartResumePaper
+    resumeData={data}
+    className="sticky top-4"
+  />
+  <HrValidationPanel
+    recommendations={validationFeedback.recommendations}
+    scores={validationFeedback.scores}
+  />
+</div>
+
+// Recommendation card shows individual items with copy action
+<RecommendationCard
+  item={{
+    section: 'Experience',
+    type: 'enhancement',
+    original: 'Managed team projects',
+    suggested: 'Led cross-functional team of 5, delivered 3 projects...',
+    reason: 'More impact-focused and quantified'
+  }}
 />
+```
+
+**DOMPurify Usage for HTML Rendering:**
+```typescript
+import DOMPurify from 'dompurify';
+
+// Sanitize HTML content (e.g., <b> tags in resume bullets)
+const sanitizedHTML = DOMPurify.sanitize(htmlContent, {
+  ALLOWED_TAGS: ['b', 'i', 'em', 'strong'],
+  ALLOWED_ATTR: []
+});
+
+<div dangerouslySetInnerHTML={{ __html: sanitizedHTML }} />
 ```
 
 #### Shared Components (`components/shared/`)

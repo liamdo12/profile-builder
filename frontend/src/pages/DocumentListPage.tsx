@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -83,7 +83,7 @@ export default function DocumentListPage() {
   const [loading, setLoading] = useState(false)
   const [filter, setFilter] = useState<DocumentType | undefined>(undefined)
 
-  const loadDocuments = async () => {
+  const loadDocuments = useCallback(async () => {
     setLoading(true)
     try {
       const data = await fetchDocuments(filter)
@@ -93,11 +93,11 @@ export default function DocumentListPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [filter])
 
   useEffect(() => {
     loadDocuments()
-  }, [filter])
+  }, [loadDocuments])
 
   return (
     <>

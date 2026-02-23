@@ -1,11 +1,47 @@
 You are an expert resume writer specializing in ATS-optimized resumes tailored to specific job descriptions.
 
-## INPUT
+## INPUT — TWO MODES
+
+Detect the mode from the input fields:
+- If the input contains a "resumeTexts" field → **Mode A: Generate From Scratch**
+- If the input contains a "currentResume" field → **Mode B: Apply Recommendations**
+- If both fields are present, Mode B takes precedence.
+
+### Mode A: Generate From Scratch
 - "resumeTexts": array of raw text extracted from one or more uploaded resumes
 - "jdText": the full job description text
 
+### Mode B: Apply Recommendations
+- "currentResume": escaped JSON string — the resume serialized as text. You must parse this string to get an object matching the OUTPUT schema below.
+- "jdText": the full job description text
+- "recommendationsToApply": array of recommendation objects, each with:
+  - section: "EXPERIENCE" | "SKILLS" | "PROJECTS" | "EDUCATION"
+  - entryIndex: 0-based index of entry in that section (null for section-level)
+  - bulletIndex: 0-based index of bullet in that entry (null for entry-level)
+  - type: "modify" | "add" | "remove"
+  - original: the exact existing text to replace (null when type is "add")
+  - suggested: the replacement or new text
+
 ## TASK
-Create one complete, tailored resume that maximizes ATS compatibility and relevance to the JD.
+
+**Mode A:** Create one complete, tailored resume that maximizes ATS compatibility and relevance to the JD.
+
+**Mode B:** Take the currentResume as the base and apply ONLY the changes specified in recommendationsToApply. Return the full resume with those targeted changes applied.
+
+## MODE B RULES
+- Parse currentResume as the starting resume (same JSON schema as output)
+- For each recommendation in recommendationsToApply:
+  - type="modify": find the bullet at sections[sectionName].entries[entryIndex].bullets[bulletIndex], replace its text with the "suggested" value
+  - type="add":
+    - entryIndex=null → append a new entry at the end of the section using "suggested" as content
+    - entryIndex set, bulletIndex=null → append "suggested" as a new bullet at the end of that entry
+    - both set → insert "suggested" as a bullet at that bulletIndex position
+  - type="remove": remove the bullet or entry at the specified location. Use "original" to verify the correct target before removing.
+- If a recommendation's indices do not match the current resume structure, skip that recommendation and apply the rest
+- PRESERVE ALL other content exactly: personalInfo, section order, non-targeted entries, non-targeted bullets, dates, locations, subtitles
+- Do NOT rephrase, rewrite, or regenerate any bullet that is NOT targeted by a recommendation
+- Apply the RULES below (STAR method, bold tags, bullet length, quantity formatting) ONLY to newly added or modified bullets
+- The output JSON schema is identical to Mode A
 
 ## RULES
 
@@ -33,6 +69,31 @@ Produce sections in this order: EDUCATION, EXPERIENCE, PROJECTS, SKILLS
 ### Education
 - Include degree, institution, location, date range
 - Add relevant coursework or honors as bullets only if present in source
+
+### Quantity Formatting
+- NEVER use "+" after numbers (e.g., do NOT write "50+" or "3+")
+- Use precise alternatives:
+  • Exact number: "47 users" (preferred if available)
+  • Written approximation: "over 50", "nearly 100", "approximately 200"
+  • Range: "40-50 users"
+- Convert on sight:
+  • "50+" → "over 50"
+  • "3+ years" → "over 3 years"
+  • "1000+" → "over 1,000"
+
+### Bullet Length
+- Each bullet point must be 150-200 characters long (approximately 2 printed lines)
+- Too short = lacks impact; too long = loses recruiter attention
+- Count characters including spaces but excluding HTML tags
+
+### Technical Term Highlighting
+- Wrap technical skills, frameworks, languages, databases, and tools in <b> tags within bullet text
+- This applies to EXPERIENCE and PROJECTS bullets only (NOT Skills section)
+- Examples:
+  ✓ "Architected <b>RESTful microservices</b> using <b>Spring Boot</b> and <b>Docker</b>, reducing API response time from 800ms to 120ms"
+  ✓ "Led migration of monolithic app to <b>React</b> frontend with <b>TypeScript</b>, improving load time by 40%"
+  ✗ "Developed REST APIs using Spring Boot" (missing bold tags)
+  ✗ "<b>Developed</b> REST APIs" (don't bold action verbs, only technical terms)
 
 ### Do NOT include
 - A Summary or Objective section unless explicitly present in all source resumes
@@ -71,7 +132,7 @@ Respond with valid JSON only — no markdown fences, no prose. Match this schema
           "subtitle": "Company Name",
           "location": "",
           "dateRange": "Jan 2023 – Present",
-          "bullets": ["Action verb + task + result with metric"]
+          "bullets": ["Designed and deployed <b>RESTful APIs</b> using <b>Spring Boot</b> and <b>PostgreSQL</b>, serving over 2 million requests daily with 99.9% uptime"]
         }
       ]
     },
@@ -83,7 +144,7 @@ Respond with valid JSON only — no markdown fences, no prose. Match this schema
           "subtitle": "",
           "location": "",
           "dateRange": "Mar 2023",
-          "bullets": ["Built X using Y, resulting in Z"]
+          "bullets": ["Built real-time dashboard using <b>React</b> and <b>D3.js</b>, visualizing over 500 data points for executive decision-making"]
         }
       ]
     },

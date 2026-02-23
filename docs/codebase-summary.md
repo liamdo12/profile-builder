@@ -41,7 +41,7 @@ profile-builder/
 │   │   ├── model/                     # Entities, DTOs, Enums
 │   │   ├── repository/                # JPA repositories
 │   │   ├── exception/                 # Custom exceptions
-│   │   └── util/                      # Utility classes
+│   │   └── util/                      # Utility classes (FileValidationUtil)
 │   ├── src/main/resources/
 │   │   ├── application.yml            # Configuration
 │   │   ├── db/migrations/             # Flyway migrations
@@ -83,20 +83,24 @@ profile-builder/
 - **Notifications:** Sonner 2.0.7
 - **Icons:** lucide-react 0.575.0
 - **PDF Export:** html2pdf.js 0.14.0
+- **HTML Sanitization:** DOMPurify 3.3.1 (for safe HTML rendering)
 
 ### Key Features Implemented
 
-**Pages (4 total)**
+**Pages (6 total)**
 1. DocumentListPage - Browse uploaded documents
 2. UploadPage - Upload resume documents
 3. SmartResumeSetupPage - AI resume setup
 4. SmartResumeResultPage - AI-generated resume display
+5. CoverLetterSetupPage - 3-step cover letter generation (JD upload, resume select, master cover letter select)
+6. CoverLetterResultPage - Generated cover letter display with on-demand evaluation
 
 **Component Organization**
 - `src/components/ui/` - 14 shadcn/ui primitive components
 - `src/components/layout/` - AppLayout, AppSidebar, ThemeProvider, ThemeToggle
-- `src/components/resume/` - Specialized resume rendering components
-- `src/components/shared/` - Common UI patterns
+- `src/components/resume/` - SmartResumePaper, HrValidationPanel, RecommendationCard
+- `src/components/cover-letter/` - CoverLetterDisplay, CoverLetterEvaluationPanel
+- `src/components/shared/` - GenerationOverlay (reusable fullscreen overlay), common UI patterns
 
 **Styling System**
 - Tailwind CSS v4 (CSS-first configuration)
@@ -105,16 +109,25 @@ profile-builder/
 - Mobile-first responsive design (sm, md, lg, xl breakpoints)
 - Touch-friendly UI (44px minimum tap targets)
 
-### Recent Migration (Feb 2026)
-**From:** Ant Design → **To:** shadcn/ui + Tailwind CSS v4
+### Recent Migrations & Updates
 
-**Changes:**
+**UI Framework Migration (Feb 2026):**
+- From Ant Design → shadcn/ui + Tailwind CSS v4
 - Removed: antd, @ant-design/icons, @ant-design/colors
 - Added: shadcn/ui, tailwindcss, lucide-react, sonner, html2pdf.js
 - Navigation: Horizontal header → Sidebar with mobile hamburger
 - Notifications: antd message → Sonner toast
 - Theme: Dark-only → Dark/light toggle with persistence
 - File structure: Reorganized into layout, shared, ui, resume directories
+
+**Smart Resume Enhancement (Feb 2026):**
+- Enhanced recommendation system with structured `RecommendationItem` objects
+- Added two-column layout (sticky resume + scrollable validation)
+- New `recommendation-card.tsx` component for displaying suggestions
+- Integrated DOMPurify for sanitized `<b>` tag rendering
+- Backend support for section-specific recommendations with metadata
+- Dual-mode resume generation (from scratch vs. apply recommendations)
+- Score-based recommendation count: 0-5 based on overall ATS score
 
 ### State Management Pattern
 - React hooks (useState, useEffect, useContext)
@@ -147,6 +160,11 @@ profile-builder/
 - GET /api/smart-resumes/{id} - Get AI resume
 - GET /api/smart-resumes/{id}/validation - Get HR validation
 
+**CoverLetterController**
+- POST /api/cover-letter/generate - Generate cover letter from JD + resume + master letter
+- GET /api/cover-letter/{id} - Retrieve generated cover letter
+- POST /api/cover-letter/{id}/evaluate - Evaluate cover letter quality
+
 ### Service Layer
 
 **Core Services**
@@ -155,13 +173,22 @@ profile-builder/
 
 **Smart Resume Services**
 - **SmartResumeOrchestrationService** - Orchestrates full workflow
-- **SmartResumeGenerationService** - AI-powered content generation
+- **SmartResumeGenerationService** - AI-powered content generation with dual-mode support:
+  - Mode A: Generate complete resume from scratch
+  - Mode B: Apply targeted recommendations to existing resume
+
+**Cover Letter Services**
+- **CoverLetterOrchestrationService** - Orchestrates company research → cover letter generation pipeline
+- **CoverLetterGenerationService** - Manages persistence, evaluation, and retrieval of cover letters
 
 ### AI Agent Architecture
 
 **Specialized AI Agents** (Located in `ai/agent/`)
 - **ResumeGeneratorAgent** - Generate AI-enhanced resume content
 - **HrValidatorAgent** - Validate ATS compliance
+- **CompanyResearchAgent** - Web search (Tavily) to research target company
+- **CoverLetterGeneratorAgent** - Generate tailored cover letter content
+- **CoverLetterEvaluatorAgent** - Evaluate cover letter quality and relevance
 
 **Multi-LLM Orchestration**
 - Primary: Claude API (claude-3.5-sonnet)
@@ -171,10 +198,12 @@ profile-builder/
 
 ### Database Schema
 
-**Tables (3 main)**
+**Tables (5 main)**
 1. **documents** - Uploaded files metadata
 2. **smart_generated_resumes** - AI-generated resumes
 3. **smart_hr_validations** - HR validation feedback
+4. **pb_generated_cover_letters** - Generated cover letters with company research
+5. **pb_cover_letter_evaluations** - Cover letter evaluation results
 
 ### Configuration
 - `application.yml` - Spring Boot configuration
@@ -192,6 +221,7 @@ profile-builder/
 - Organized by function in `src/main/resources/prompts/`
 - Parameterized for flexibility
 - Versioned for consistency
+- Includes: resume-generator, hr-validator, company-research, cover-letter-generator, cover-letter-evaluator
 
 ### Request/Response Pattern
 ```json
@@ -239,6 +269,7 @@ docker-compose up  # PostgreSQL + pgvector
 - Testing: Unit & integration tests (70% coverage target)
 - File size: Components < 200 lines (split large components)
 - Naming: PascalCase for components, camelCase for variables
+- Security: DOMPurify sanitization for HTML rendering, input validation
 
 ### Backend Standards
 - Java conventions: PascalCase for classes, camelCase for methods
@@ -306,6 +337,7 @@ docker-compose up  # PostgreSQL + pgvector
 2. **UI Framework Migration** - Ant Design → shadcn/ui + Tailwind v4
 3. **Smart Resume System** - AI orchestration, HR validation, company research
 4. **Responsive Design** - Mobile-first Tailwind CSS implementation
+5. **Cover Letter Generator** - Company research agent, cover letter generation, evaluation pipeline
 
 ### Current Focus
 - Code refinement and optimization

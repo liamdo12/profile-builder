@@ -9,6 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import com.profilebuilder.model.dto.RecommendationItem;
 import java.util.List;
 import java.util.Map;
 
@@ -76,6 +77,43 @@ public class SmartResumeOrchestrationService {
             throw e; // Let GlobalExceptionHandler return 503
         } catch (Exception e) {
             throw new RuntimeException("Resume orchestration failed: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Orchestrates resume regeneration with selected recommendations applied.
+     * Feeds current resume + JD + recommendations to the resume generator, then re-validates.
+     */
+    public OrchestrationResult orchestrateWithRecommendations(
+            String currentResumeJson, String jdText, List<RecommendationItem> recommendations) {
+        try {
+            String augmentedInput = objectMapper.writeValueAsString(Map.of(
+                "currentResume", currentResumeJson,
+                "jdText", jdText,
+                "recommendationsToApply", recommendations
+            ));
+
+            log.info("Running Resume Generator with {} recommendations...", recommendations.size());
+            SmartResumeOutput resumeOutput = resumeGeneratorAgent.generateResume(augmentedInput);
+            log.info("Resume Generator complete with applied recommendations");
+
+            HrValidationOutput validationOutput = null;
+            try {
+                String resumeJson = objectMapper.writeValueAsString(resumeOutput);
+                String validatorInput = objectMapper.writeValueAsString(
+                        Map.of("resumeContent", resumeJson, "jdText", jdText));
+                log.info("Running HR Validator on updated resume...");
+                validationOutput = hrValidatorAgent.validateResume(validatorInput);
+                log.info("HR Validator complete: overall score={}", validationOutput.getOverallScore());
+            } catch (Exception e) {
+                log.warn("HR Validator failed after apply: {}", e.getMessage());
+            }
+
+            return new OrchestrationResult(resumeOutput, validationOutput);
+        } catch (dev.langchain4j.exception.LangChain4jException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new RuntimeException("Apply recommendations orchestration failed: " + e.getMessage(), e);
         }
     }
 }

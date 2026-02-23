@@ -1,15 +1,21 @@
 package com.profilebuilder.controller;
 
-import com.profilebuilder.exception.InvalidFileException;
+import com.profilebuilder.ai.dto.SmartResumeOutput;
+import com.profilebuilder.model.dto.ApplyRecommendationsRequest;
 import com.profilebuilder.model.dto.SmartGeneratedResumeResponse;
+import com.profilebuilder.service.SmartResumeDocxService;
+import com.profilebuilder.util.FileValidationUtil;
+import jakarta.validation.Valid;
 import com.profilebuilder.service.JdExtractionService;
 import com.profilebuilder.service.SmartResumeGenerationService;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
-import java.util.Set;
 
 /**
  * REST controller for smart resume generation endpoints.
@@ -19,15 +25,16 @@ import java.util.Set;
 @RequestMapping("/api/smart-resume")
 public class SmartResumeController {
 
-    private static final Set<String> ALLOWED_CONTENT_TYPES = Set.of("application/pdf", "image/png");
-
     private final JdExtractionService jdExtractionService;
     private final SmartResumeGenerationService smartResumeGenerationService;
+    private final SmartResumeDocxService smartResumeDocxService;
 
     public SmartResumeController(JdExtractionService jdExtractionService,
-                                 SmartResumeGenerationService smartResumeGenerationService) {
+                                 SmartResumeGenerationService smartResumeGenerationService,
+                                 SmartResumeDocxService smartResumeDocxService) {
         this.jdExtractionService = jdExtractionService;
         this.smartResumeGenerationService = smartResumeGenerationService;
+        this.smartResumeDocxService = smartResumeDocxService;
     }
 
     /**
@@ -38,7 +45,7 @@ public class SmartResumeController {
     public ResponseEntity<SmartGeneratedResumeResponse> generate(
             @RequestParam("jdFile") MultipartFile jdFile,
             @RequestParam("documentIds") List<Long> documentIds) {
-        validateFile(jdFile);
+        FileValidationUtil.validateJdFile(jdFile);
         String jdText = jdExtractionService.extractText(jdFile);
         SmartGeneratedResumeResponse response = smartResumeGenerationService.generate(jdText, documentIds);
         return ResponseEntity.ok(response);
@@ -62,19 +69,33 @@ public class SmartResumeController {
         return ResponseEntity.ok(smartResumeGenerationService.regenerate(id));
     }
 
-    // ── Private helpers ──────────────────────────────────────
+    /**
+     * POST /api/smart-resume/{id}/apply-recommendations
+     * Applies selected HR recommendations and re-generates the resume.
+     */
+    @PostMapping("/{id}/apply-recommendations")
+    public ResponseEntity<SmartGeneratedResumeResponse> applyRecommendations(
+            @PathVariable Long id,
+            @RequestBody @Valid ApplyRecommendationsRequest request) {
+        return ResponseEntity.ok(
+                smartResumeGenerationService.applyRecommendations(id, request.getRecommendations()));
+    }
 
-    private void validateFile(MultipartFile file) {
-        if (file.isEmpty()) {
-            throw new InvalidFileException("File is empty");
-        }
-        String contentType = file.getContentType();
-        String fileName = file.getOriginalFilename();
-        boolean validContentType = contentType != null && ALLOWED_CONTENT_TYPES.contains(contentType);
-        boolean validExtension = fileName != null
-                && (fileName.toLowerCase().endsWith(".pdf") || fileName.toLowerCase().endsWith(".png"));
-        if (!validContentType && !validExtension) {
-            throw new InvalidFileException("Invalid file type. Only PDF and PNG files are accepted.");
-        }
+    /**
+     * GET /api/smart-resume/{id}/download-docx
+     * Downloads a DOCX file for the generated smart resume.
+     */
+    @GetMapping("/{id}/download-docx")
+    public ResponseEntity<byte[]> downloadDocx(@PathVariable Long id) {
+        SmartResumeOutput resumeOutput = smartResumeGenerationService.getResumeOutput(id);
+        byte[] docxBytes = smartResumeDocxService.generateDocx(resumeOutput);
+        String fullName = resumeOutput.getPersonalInfo() != null
+                ? resumeOutput.getPersonalInfo().getFullName() : "resume";
+        String sanitized = fullName.replaceAll("[^a-zA-Z0-9\\s-]", "").trim();
+        String filename = (sanitized.isEmpty() ? "resume" : sanitized) + ".docx";
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+        headers.setContentDisposition(ContentDisposition.attachment().filename(filename).build());
+        return ResponseEntity.ok().headers(headers).body(docxBytes);
     }
 }

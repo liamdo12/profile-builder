@@ -1,3 +1,4 @@
+import DOMPurify from 'dompurify'
 import type { SmartResumeSection, SmartResumeSectionEntry, SmartResumeContent } from '@/types/smart-resume'
 import '@/styles/smart-resume-template.css'
 
@@ -47,7 +48,11 @@ function renderEntry(entry: SmartResumeSectionEntry, sectionName: string, idx: n
       {entry.bullets.length > 0 && (
         <ul className="smart-resume-bullets">
           {entry.bullets.map((b, bi) => (
-            <li key={bi} className="smart-resume-bullet">{b}</li>
+            <li
+              key={bi}
+              className="smart-resume-bullet"
+              dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(b) }}
+            />
           ))}
         </ul>
       )}
@@ -74,25 +79,21 @@ interface SmartResumePaperProps {
 export function SmartResumePaper({ resumeContent }: SmartResumePaperProps) {
   const { personalInfo, sections } = resumeContent
   return (
-    <div className="overflow-x-auto pb-4">
-      <div className="min-w-[850px]">
-        <div className="smart-resume-layout">
-          <div className="smart-resume-paper">
-            <div className="smart-resume-header">
-              <h1 className="smart-resume-header-name">{personalInfo?.fullName}</h1>
-              {personalInfo && (
-                <div className="smart-resume-header-contact">
-                  {personalInfo.location && <span>{personalInfo.location}</span>}
-                  {personalInfo.phone && <span>{personalInfo.phone}</span>}
-                  {personalInfo.email && <span>{personalInfo.email}</span>}
-                  {personalInfo.linkedinUrl && <span>{personalInfo.linkedinUrl}</span>}
-                  {personalInfo.githubUrl && <span>{personalInfo.githubUrl}</span>}
-                </div>
-              )}
+    <div className="smart-resume-layout">
+      <div className="smart-resume-paper">
+        <div className="smart-resume-header">
+          <h1 className="smart-resume-header-name">{personalInfo?.fullName}</h1>
+          {personalInfo && (
+            <div className="smart-resume-header-contact">
+              {personalInfo.location && <span>{personalInfo.location}</span>}
+              {personalInfo.phone && <span>{personalInfo.phone}</span>}
+              {personalInfo.email && <span>{personalInfo.email}</span>}
+              {personalInfo.linkedinUrl && <span>{personalInfo.linkedinUrl}</span>}
+              {personalInfo.githubUrl && <span>{personalInfo.githubUrl}</span>}
             </div>
-            {sections.map(renderSection)}
-          </div>
+          )}
         </div>
+        {sections.map(renderSection)}
       </div>
     </div>
   )

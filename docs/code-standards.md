@@ -19,7 +19,9 @@ frontend/src/
 │   │   └── theme-toggle.tsx   # Dark/light theme toggle
 │   ├── resume/                # Resume-specific components
 │   │   ├── smart-resume-paper.tsx
-│   │   └── ... (resume utilities)
+│   │   ├── hr-validation-panel.tsx
+│   │   ├── recommendation-card.tsx
+│   │   └── smart-resume-template.css
 │   └── shared/                # Shared components
 │       ├── loading-spinner.tsx
 │       ├── error-boundary.tsx
@@ -220,7 +222,7 @@ import { cn } from '@/lib/utils'; // helper using tailwind-merge
 // Common breakpoints: sm (640px), md (768px), lg (1024px), xl (1280px)
 ```
 
-### Error Handling
+### Error Handling & Security
 
 **Try-Catch Pattern:**
 ```typescript
@@ -235,6 +237,19 @@ async function loadResume(id: string) {
     toast.error(message);
   }
 }
+```
+
+**HTML Sanitization (DOMPurify):**
+```typescript
+import DOMPurify from 'dompurify';
+
+// Always sanitize user-generated or AI-generated HTML
+const sanitized = DOMPurify.sanitize(htmlContent, {
+  ALLOWED_TAGS: ['b', 'i', 'em', 'strong'],  // Only safe tags
+  ALLOWED_ATTR: []  // No attributes allowed
+});
+
+<div dangerouslySetInnerHTML={{ __html: sanitized }} />
 ```
 
 **User Feedback:**
@@ -287,6 +302,22 @@ backend/
 - Entities: `XyzEntity.java` or `Xyz.java`
 - DTOs: `XyzRequest.java`, `XyzResponse.java`
 - Exceptions: `XyzException.java`
+
+### Lombok Annotations
+All DTOs and entities use Lombok to reduce boilerplate:
+```java
+@Entity
+@Table(name = "pb_documents")
+@Getter              // Generate getters
+@Setter              // Generate setters
+@NoArgsConstructor   // Generate no-arg constructor
+@AllArgsConstructor  // Generate all-args constructor
+public class Document {
+  private String fileName;
+  // Fields only; no getters/setters needed
+}
+```
+This eliminates manual getter/setter methods and constructors.
 
 ### API Response Format
 ```json
@@ -365,9 +396,10 @@ async function generateSmartResume(
 ### Frontend
 - Never store sensitive data in localStorage (only theme preference)
 - Validate input before sending to API
-- Sanitize rendered content
+- Sanitize rendered content with DOMPurify before using `dangerouslySetInnerHTML`
 - Use HTTPS in production
 - Implement CSRF protection if needed
+- Use whitelist approach for allowed HTML tags and attributes
 
 ### Backend
 - Validate all API inputs

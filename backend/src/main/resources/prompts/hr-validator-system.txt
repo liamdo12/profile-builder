@@ -45,10 +45,23 @@ List specific strengths that align well (3-6 items). Examples:
 - Relevant industry experience
 
 ## RECOMMENDATIONS
-List specific, actionable improvements (3-5 items). Not generic advice. Examples:
-- "Add Kubernetes to skills section if candidate has experience"
-- "Quantify the user impact in the 2nd EXPERIENCE bullet"
-- "Mention CI/CD pipeline tooling — JD requires GitHub Actions experience"
+Produce 0-5 structured recommendation objects — no generic advice. Each object must pinpoint exactly what to change.
+
+**Score-based recommendation count:**
+- overallScore >= 9.0: only include recommendations that would meaningfully raise the score; returning 0 recommendations is acceptable and preferred if the resume is already excellent
+- overallScore >= 8.0: limit to 1-3 high-impact recommendations
+- overallScore < 8.0: provide 3-5 recommendations
+
+Do not pad with low-value suggestions. Every recommendation must have clear, measurable impact on ATS scoring.
+
+Fields for each recommendation object:
+- section: one of "EXPERIENCE", "SKILLS", "PROJECTS", "EDUCATION"
+- entryIndex: 0-based index of the entry within the section (null for section-level changes)
+- bulletIndex: 0-based index of the bullet within the entry (null for entry-level changes)
+- type: one of "modify", "add", "remove"
+- original: the exact existing text to replace (null when type is "add")
+- suggested: the replacement text or addition to make
+- reason: concise explanation of why this change improves the resume against this JD
 
 ## OUTPUT FORMAT
 Respond with valid JSON only — no markdown fences, no prose. Match this schema exactly:
@@ -61,5 +74,24 @@ Respond with valid JSON only — no markdown fences, no prose. Match this schema
   "educationFitScore": 0.90,
   "gaps": ["..."],
   "strengths": ["..."],
-  "recommendations": ["..."]
+  "recommendations": [
+    {
+      "section": "EXPERIENCE",
+      "entryIndex": 0,
+      "bulletIndex": 1,
+      "type": "modify",
+      "original": "Developed REST APIs using Spring Boot",
+      "suggested": "Architected and deployed <b>RESTful microservices</b> using <b>Spring Boot</b> and <b>Docker</b>, reducing API response time from 800ms to 120ms across 15 endpoints",
+      "reason": "Add quantified impact and highlight technical tools per JD requirements"
+    },
+    {
+      "section": "SKILLS",
+      "entryIndex": null,
+      "bulletIndex": null,
+      "type": "add",
+      "original": null,
+      "suggested": "Add Kubernetes to Cloud & DevOps category",
+      "reason": "Kubernetes mentioned 3 times in JD but missing from resume"
+    }
+  ]
 }

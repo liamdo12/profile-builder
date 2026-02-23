@@ -25,6 +25,16 @@ export interface SmartResumeContent {
   sections: SmartResumeSection[];
 }
 
+export interface RecommendationItem {
+  section: string;       // EXPERIENCE, SKILLS, PROJECTS, EDUCATION
+  entryIndex: number | null;
+  bulletIndex: number | null;
+  type: 'modify' | 'add' | 'remove';
+  original: string | null;
+  suggested: string;
+  reason: string;
+}
+
 export interface HrValidationResponse {
   overallScore: number;
   keywordMatchScore: number;
@@ -34,7 +44,7 @@ export interface HrValidationResponse {
   educationFitScore: number;
   gaps: string[];
   strengths: string[];
-  recommendations: string[];
+  recommendations: RecommendationItem[];
 }
 
 export interface SmartGeneratedResumeResponse {
@@ -42,4 +52,8 @@ export interface SmartGeneratedResumeResponse {
   resumeContent: SmartResumeContent;
   validation: HrValidationResponse | null;
   createdAt: string;
+}
+
+export interface ApplyRecommendationsRequest {
+  recommendations: RecommendationItem[];
 }

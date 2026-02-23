@@ -1,15 +1,23 @@
 package com.profilebuilder.model.entity;
 
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
+
+import com.profilebuilder.model.dto.RecommendationItem;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
 @Entity
 @Table(name = "pb_smart_hr_validations")
+@Getter
+@Setter
+@NoArgsConstructor
 public class SmartHrValidation {
 
     @Id
@@ -47,110 +55,9 @@ public class SmartHrValidation {
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "recommendations", columnDefinition = "jsonb")
-    private List<String> recommendations;
+    private List<RecommendationItem> recommendations;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
-
-    public SmartHrValidation() {
-    }
-
-    // ── Getters & Setters ────────────────────────────────────
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public Long getSmartResumeId() {
-        return smartResumeId;
-    }
-
-    public void setSmartResumeId(Long smartResumeId) {
-        this.smartResumeId = smartResumeId;
-    }
-
-    public Double getOverallScore() {
-        return overallScore;
-    }
-
-    public void setOverallScore(Double overallScore) {
-        this.overallScore = overallScore;
-    }
-
-    public Double getKeywordMatchScore() {
-        return keywordMatchScore;
-    }
-
-    public void setKeywordMatchScore(Double keywordMatchScore) {
-        this.keywordMatchScore = keywordMatchScore;
-    }
-
-    public Double getExperienceRelevanceScore() {
-        return experienceRelevanceScore;
-    }
-
-    public void setExperienceRelevanceScore(Double experienceRelevanceScore) {
-        this.experienceRelevanceScore = experienceRelevanceScore;
-    }
-
-    public Double getSkillsAlignmentScore() {
-        return skillsAlignmentScore;
-    }
-
-    public void setSkillsAlignmentScore(Double skillsAlignmentScore) {
-        this.skillsAlignmentScore = skillsAlignmentScore;
-    }
-
-    public Double getResumeQualityScore() {
-        return resumeQualityScore;
-    }
-
-    public void setResumeQualityScore(Double resumeQualityScore) {
-        this.resumeQualityScore = resumeQualityScore;
-    }
-
-    public Double getEducationFitScore() {
-        return educationFitScore;
-    }
-
-    public void setEducationFitScore(Double educationFitScore) {
-        this.educationFitScore = educationFitScore;
-    }
-
-    public List<String> getGaps() {
-        return gaps;
-    }
-
-    public void setGaps(List<String> gaps) {
-        this.gaps = gaps;
-    }
-
-    public List<String> getStrengths() {
-        return strengths;
-    }
-
-    public void setStrengths(List<String> strengths) {
-        this.strengths = strengths;
-    }
-
-    public List<String> getRecommendations() {
-        return recommendations;
-    }
-
-    public void setRecommendations(List<String> recommendations) {
-        this.recommendations = recommendations;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
 }

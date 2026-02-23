@@ -21,6 +21,12 @@ Profile Builder is a full-stack AI-powered resume management and generation plat
 - Context-aware content generation
 - HR validation and compliance checks
 
+### 3. Cover Letter Generator
+- Generate tailored cover letters from job descriptions
+- Company research integration (Tavily web search)
+- Multi-step workflow: upload JD, select resume, provide master letter
+- Evaluation pipeline with match scoring and improvement suggestions
+
 ## Technical Architecture
 
 ### Frontend Stack (React 19 + TypeScript)
@@ -34,6 +40,7 @@ Profile Builder is a full-stack AI-powered resume management and generation plat
 - **Icons:** lucide-react
 - **Export:** html2pdf.js for PDF generation
 - **Utilities:** clsx, tailwind-merge, class-variance-authority
+- **HTML Sanitization:** DOMPurify for safe rendering of formatted content
 
 ### Backend Stack (Java/Spring Boot)
 - **Framework:** Spring Boot 3
@@ -57,13 +64,36 @@ Profile Builder is a full-stack AI-powered resume management and generation plat
 - Support various resume formats and layouts
 
 ### FR3: Smart Resume Generation
-- AI-powered resume generation and tailoring
-- Context-aware content creation
+- AI-powered resume generation with dual-mode support:
+  - **Mode A:** Generate complete resume from scratch
+  - **Mode B:** Apply targeted recommendations to existing resume
+- Context-aware content creation with quantity formatting
+- Bullet length optimization (150-200 chars) and semantic highlighting
+- Technical term highlighting with `<b>` tags
 - Multiple model orchestration (Claude, GPT-4, Gemini)
-- HR validation and compliance feedback
-- PDF download with formatted layout
+- HR validation with adaptive recommendations
+  - Section-specific feedback with entry and bullet indices
+  - Score-based recommendation count: 0-5 (excellent resume may need 0)
+  - Structured fields: section, entry/bullet index, type, original, suggested, reason
+  - Operations: modify, add, remove
+- Two-column responsive layout (sticky resume + scrollable validation)
+- PDF download with formatted layout and preserved styling
 
-### FR4: Theme & Accessibility
+### FR4: Cover Letter Generation
+- Generate cover letters tailored to specific job descriptions
+- Company research via Tavily web search:
+  - Extract company domain, products, services, tech stack
+  - Aggregate engineering blogs and YouTube videos
+  - Generate company summary
+- Multi-agent orchestration: company research → cover letter generation
+- Optional evaluation with:
+  - Match percentage scoring
+  - Detailed verdict and improvement suggestions
+  - Persistent evaluation results
+- Support for PDF and PNG job descriptions
+- Two-column UI: sticky letter display + scrollable evaluation feedback
+
+### FR5: Theme & Accessibility
 - Light and dark theme support
 - Theme preference persistence
 - Mobile-responsive design
@@ -123,6 +153,12 @@ Profile Builder is a full-stack AI-powered resume management and generation plat
 - Smart resume generation
 - HR validation system
 - Responsive UI redesign (shadcn/ui migration)
+
+### Phase 2b: Cover Letter Generator (COMPLETE)
+- Company research with Tavily web search
+- Cover letter generation pipeline
+- Evaluation system with match scoring
+- Full UI implementation (setup + result pages)
 
 ### Phase 3: Advanced Features (PLANNED)
 - Resume templates
