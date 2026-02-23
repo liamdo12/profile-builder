@@ -22,6 +22,18 @@
         <langchain4j.version>1.11.0-beta19</langchain4j.version>
     </properties>
 
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>software.amazon.awssdk</groupId>
+                <artifactId>bom</artifactId>
+                <version>2.25.0</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
     <dependencies>
         <!-- ==================== Spring Boot Core ==================== -->
         <dependency>
@@ -85,6 +97,12 @@
             <artifactId>langchain4j-web-search-engine-tavily</artifactId>
             <version>${langchain4j.version}</version>
         </dependency>
+        <!-- ==================== AWS S3 SDK ==================== -->
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>s3</artifactId>
+        </dependency>
+
         <!-- ==================== PDF Extraction ==================== -->
         <dependency>
             <groupId>org.apache.pdfbox</groupId>

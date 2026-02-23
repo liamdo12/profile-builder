@@ -28,6 +28,8 @@ profile-builder/
 │   │   ├── styles/                    # Global CSS + templates
 │   │   ├── App.tsx                    # Root component
 │   │   └── main.tsx                   # Entry point
+│   ├── Dockerfile                     # Multi-stage build (frontend)
+│   ├── nginx-ecs.conf                 # nginx config for ECS (path-based routing)
 │   ├── package.json                   # Dependencies
 │   └── vite.config.ts                 # Build configuration
 │
@@ -37,7 +39,7 @@ profile-builder/
 │   │   │   └── agent/                 # Specialized AI agents
 │   │   ├── config/                    # Spring configuration
 │   │   ├── controller/                # REST endpoints
-│   │   ├── service/                   # Business logic
+│   │   ├── service/                   # Business logic (includes S3Integration)
 │   │   ├── model/                     # Entities, DTOs, Enums
 │   │   ├── repository/                # JPA repositories
 │   │   ├── exception/                 # Custom exceptions
@@ -48,7 +50,22 @@ profile-builder/
 │   │   └── prompts/                   # AI prompts
 │   ├── src/test/java/                 # Unit tests
 │   ├── pom.xml                        # Maven dependencies
-│   └── Dockerfile                     # Container image
+│   └── Dockerfile                     # Multi-stage build (backend)
+│
+├── infra/                             # Infrastructure as Code (Terraform) (NEW)
+│   ├── main.tf                        # Root module orchestration
+│   ├── variables.tf                   # Input variables
+│   ├── outputs.tf                     # Output values
+│   ├── providers.tf                   # AWS provider config
+│   ├── backend.tf                     # Terraform state management
+│   └── modules/                       # Reusable infrastructure modules
+│       ├── vpc/                       # VPC, subnets, security groups
+│       ├── ecr/                       # Elastic Container Registry
+│       ├── rds/                       # PostgreSQL database
+│       ├── s3/                        # Document storage (S3 buckets)
+│       ├── secrets/                   # SSM Parameter Store + KMS encryption
+│       ├── alb/                       # Application Load Balancer
+│       └── ecs/                       # ECS Fargate services
 │
 ├── docs/                              # Documentation (NEW)
 │   ├── project-overview-pdr.md        # Project overview & requirements
@@ -64,7 +81,10 @@ profile-builder/
 │   └── 260220-2205-resume-generation-rewrite/
 │       └── ...
 │
+├── .github/workflows/                 # GitHub Actions CI/CD
+│   └── deploy-ecs.yml                 # Auto-deploy to ECS (OIDC auth)
 ├── docker-compose.yml                 # Local dev environment
+├── .gitignore                         # Updated with Terraform entries
 ├── .repomixignore                     # Files excluded from repomix
 ├── CLAUDE.md                          # Claude Code instructions
 └── README.md                          # Project overview
@@ -432,12 +452,32 @@ docker-compose up    # Start local PostgreSQL
 
 ## Deployment Readiness
 
-- Docker files created for containerization
-- Docker Compose for local development
+### Local Development
+- Docker files created for containerization (frontend, backend)
+- Docker Compose for local PostgreSQL + application stack
 - Environment-based configuration (dev, test, prod)
 - Database migrations automated (Flyway)
-- Frontend build optimizations enabled
-- Backend ready for horizontal scaling
+
+### Production (AWS ECS Fargate)
+- **Infrastructure as Code (Terraform):** Complete IaC in `infra/` directory
+  - VPC with multi-AZ public/private subnets
+  - ECR repositories for frontend and backend images
+  - RDS PostgreSQL 16 (db.t4g.micro, private subnet)
+  - S3 buckets with versioning and KMS encryption
+  - ALB with path-based routing (/api/* → backend, /* → frontend)
+  - ECS Fargate Spot for cost optimization
+  - SSM Parameter Store + KMS for secrets management
+
+- **CI/CD Pipeline (GitHub Actions):** Auto-deploy to ECS staging
+  - OIDC authentication (no stored AWS keys)
+  - Build & push Docker images to ECR on main push
+  - Update ECS service with new images
+  - Automated deployment to staging environment
+
+- **Frontend Deployment:** nginx-ecs.conf for path-based routing, VITE_API_HOST build arg
+- **Backend Deployment:** Spring Boot JAR in Docker, environment variables injected from Secrets Manager
+- **Database:** Automated migrations via Flyway on ECS startup
+- **File Storage:** S3 integration with fallback to local filesystem support
 
 ## Future Considerations
 

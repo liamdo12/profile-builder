@@ -1,0 +1,14 @@
+# Copy this file to terraform.tfvars and fill in actual values
+# NEVER commit terraform.tfvars to git!
+
+# Database
+db_password = "CHANGE_ME_STRONG_PASSWORD"
+
+# Secrets
+jwt_secret     = "CHANGE_ME_RANDOM_256BIT_STRING"
+admin_password = "CHANGE_ME_ADMIN_PASSWORD"
+openai_api_key = "sk-..."
+tavily_api_key = "tvly-..."
+
+# GitHub (for CI/CD OIDC)
+github_repo = "YOUR_GITHUB_USER/profile-builder"

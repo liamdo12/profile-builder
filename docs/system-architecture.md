@@ -560,13 +560,57 @@ docker-compose.yml
 └── Frontend dev server (Vite)
 ```
 
-### Production (Planned)
+### Production (AWS ECS Fargate Staging)
 ```
-Cloud Infrastructure
-├── Frontend: Static hosting (CDN)
-├── Backend: Container orchestration (K8s/Docker)
-├── Database: Managed PostgreSQL
-└── Storage: Cloud file storage
+AWS Infrastructure
+├── VPC with public/private subnets (Multi-AZ)
+│
+├── Application Layer (ECS Fargate Spot)
+│   ├── Frontend
+│   │   ├── nginx (reverse proxy, path-based routing)
+│   │   ├── React 19 (Vite build)
+│   │   └── Configured via VITE_API_HOST, NGINX_CONF
+│   │
+│   └── Backend
+│       ├── Spring Boot 3 (Java 17)
+│       ├── ECS Task definition with computed environment
+│       └── Secrets from SSM Parameter Store via Secrets Manager
+│
+├── Load Balancer (ALB)
+│   ├── HTTP listener on port 80
+│   ├── Path-based routing:
+│   │   ├── /api/* → Backend ECS service
+│   │   └── /* → Frontend ECS service
+│   ├── Target groups for frontend & backend
+│   └── Health checks (ECS managed)
+│
+├── Database (RDS PostgreSQL 16)
+│   ├── Instance type: db.t4g.micro
+│   ├── Private subnet (no public access)
+│   ├── Automated backups (7 days retention)
+│   └── Multi-AZ failover enabled
+│
+├── File Storage (S3)
+│   ├── Document uploads (scoped by user_id)
+│   ├── Versioning enabled
+│   ├── Server-side encryption (KMS)
+│   └── Lifecycle policies for archived files
+│
+├── Secrets Management
+│   ├── SSM Parameter Store (encrypted with KMS)
+│   ├── Stores: DB credentials, API keys, JWT secret
+│   └── Auto-injected via ECS task definition
+│
+├── Container Registry (ECR)
+│   ├── Frontend image (nginx + React build)
+│   ├── Backend image (Spring Boot JAR)
+│   └── Auto-versioned on push
+│
+└── CI/CD Pipeline (GitHub Actions)
+    ├── OIDC authentication (no stored AWS keys)
+    ├── Build & push Docker images on main push
+    ├── Update ECS service with new images
+    └── Auto-deploy to staging environment
 ```
 
 ## Scalability Considerations
