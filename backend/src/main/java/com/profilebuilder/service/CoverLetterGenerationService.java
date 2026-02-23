@@ -24,6 +24,7 @@ import java.util.Map;
 /**
  * Main service for cover letter generation, evaluation, and retrieval.
  * Delegates AI work to CoverLetterOrchestrationService and persists results.
+ * All operations are scoped to the authenticated user (userId).
  */
 @Service
 public class CoverLetterGenerationService {
@@ -56,12 +57,13 @@ public class CoverLetterGenerationService {
 
     /**
      * Generates a new cover letter from a job description text, resume doc, and master cover letter doc.
+     * Documents are verified to belong to the given user.
      */
-    public CoverLetterResponse generate(String jdText, Long resumeDocId, Long coverLetterDocId) {
+    public CoverLetterResponse generate(String jdText, Long resumeDocId, Long coverLetterDocId, Long userId) {
         log.info("Generating cover letter for resumeDoc={}, coverLetterDoc={}", resumeDocId, coverLetterDocId);
 
-        String resumeText = extractDocumentText(resumeDocId);
-        String masterCoverLetterText = extractDocumentText(coverLetterDocId);
+        String resumeText = extractDocumentText(resumeDocId, userId);
+        String masterCoverLetterText = extractDocumentText(coverLetterDocId, userId);
 
         // Run 2-agent orchestration pipeline
         OrchestrationResult result = orchestrationService.orchestrate(resumeText, masterCoverLetterText, jdText);
@@ -71,6 +73,7 @@ public class CoverLetterGenerationService {
         entity.setJdText(jdText);
         entity.setResumeDocumentId(resumeDocId);
         entity.setCoverLetterDocumentId(coverLetterDocId);
+        entity.setUserId(userId);
         persistContent(entity, result);
         GeneratedCoverLetter saved = coverLetterRepository.save(entity);
 
@@ -80,10 +83,10 @@ public class CoverLetterGenerationService {
 
     /**
      * Evaluates an existing cover letter against its JD using the evaluator agent.
-     * Replaces any prior evaluation for the same cover letter.
+     * Verifies ownership before proceeding. Replaces any prior evaluation.
      */
-    public CoverLetterResponse evaluate(Long id) {
-        GeneratedCoverLetter entity = coverLetterRepository.findById(id)
+    public CoverLetterResponse evaluate(Long id, Long userId) {
+        GeneratedCoverLetter entity = coverLetterRepository.findByIdAndUserId(id, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Cover letter not found with id: " + id));
 
         log.info("Evaluating cover letter id={}", id);
@@ -112,9 +115,10 @@ public class CoverLetterGenerationService {
 
     /**
      * Retrieves a previously generated cover letter with its evaluation data if available.
+     * Verifies ownership before returning.
      */
-    public CoverLetterResponse getCoverLetter(Long id) {
-        GeneratedCoverLetter entity = coverLetterRepository.findById(id)
+    public CoverLetterResponse getCoverLetter(Long id, Long userId) {
+        GeneratedCoverLetter entity = coverLetterRepository.findByIdAndUserId(id, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Cover letter not found with id: " + id));
 
         CoverLetterOutput coverLetterOutput = parseCoverLetterContent(entity.getCoverLetterContent());
@@ -134,9 +138,9 @@ public class CoverLetterGenerationService {
 
     // ── Private helpers ──────────────────────────────────────
 
-    /** Looks up document by ID and extracts its text content from disk. */
-    private String extractDocumentText(Long docId) {
-        Document doc = documentRepository.findById(docId)
+    /** Looks up document by ID, verifies ownership, then extracts text content from disk. */
+    private String extractDocumentText(Long docId, Long userId) {
+        Document doc = documentRepository.findByIdAndUserId(docId, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Document not found with id: " + docId));
         return jdExtractionService.extractTextFromPath(Path.of(doc.getFilePath()));
     }

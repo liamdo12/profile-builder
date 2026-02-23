@@ -1,6 +1,7 @@
 package com.profilebuilder.service;
 
 import com.profilebuilder.exception.InvalidFileException;
+import com.profilebuilder.exception.ResourceNotFoundException;
 import com.profilebuilder.model.dto.DocumentUploadResponse;
 import com.profilebuilder.model.entity.Document;
 import com.profilebuilder.model.enums.DocumentType;
@@ -17,10 +18,10 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * Service handling document upload, validation, and persistence.
+ * All operations are scoped to the authenticated user (userId).
  */
 @Service
 public class DocumentService {
@@ -42,9 +43,9 @@ public class DocumentService {
     }
 
     /**
-     * Upload and persist a document.
+     * Upload and persist a document scoped to the given user.
      */
-    public DocumentUploadResponse uploadDocument(MultipartFile file, DocumentType documentType) {
+    public DocumentUploadResponse uploadDocument(MultipartFile file, DocumentType documentType, Long userId) {
         validateFile(file);
 
         String originalName = file.getOriginalFilename();
@@ -69,28 +70,29 @@ public class DocumentService {
         document.setFileType(file.getContentType());
         document.setDocumentType(documentType);
         document.setFileSize(file.getSize());
+        document.setUserId(userId);
 
         Document saved = documentRepository.save(document);
         return toResponse(saved);
     }
 
     /**
-     * Get all documents, optionally filtered by type.
+     * Get documents for the given user, optionally filtered by type.
      */
-    public List<DocumentUploadResponse> getDocuments(DocumentType documentType) {
+    public List<DocumentUploadResponse> getDocuments(DocumentType documentType, Long userId) {
         List<Document> documents = (documentType != null)
-                ? documentRepository.findByDocumentType(documentType)
-                : documentRepository.findAll();
+                ? documentRepository.findByUserIdAndDocumentType(userId, documentType)
+                : documentRepository.findByUserId(userId);
 
         return documents.stream().map(this::toResponse).toList();
     }
 
     /**
-     * Get a single document by ID.
+     * Get a single document by ID, scoped to the given user.
      */
-    public DocumentUploadResponse getDocumentById(Long id) {
-        Document document = documentRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Document not found with id: " + id));
+    public DocumentUploadResponse getDocumentById(Long id, Long userId) {
+        Document document = documentRepository.findByIdAndUserId(id, userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Document not found with id: " + id));
 
         return toResponse(document);
     }

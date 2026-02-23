@@ -1,19 +1,14 @@
-import axios from 'axios';
-import { API_BASE_URL } from '../config';
+import { axiosInstance } from './axios-instance';
 import type { DocumentType, DocumentUploadResponse } from '../types/document';
-
-const api = axios.create({
-    baseURL: API_BASE_URL,
-});
 
 export async function fetchDocuments(documentType?: DocumentType): Promise<DocumentUploadResponse[]> {
     const params = documentType ? { documentType } : {};
-    const { data } = await api.get<DocumentUploadResponse[]>('/documents', { params });
+    const { data } = await axiosInstance.get<DocumentUploadResponse[]>('/documents', { params });
     return data;
 }
 
 export async function fetchDocumentById(id: number): Promise<DocumentUploadResponse> {
-    const { data } = await api.get<DocumentUploadResponse>(`/documents/${id}`);
+    const { data } = await axiosInstance.get<DocumentUploadResponse>(`/documents/${id}`);
     return data;
 }
 
@@ -22,6 +17,6 @@ export async function uploadDocument(file: File, documentType: DocumentType): Pr
     formData.append('file', file);
     formData.append('documentType', documentType);
 
-    const { data } = await api.post<DocumentUploadResponse>('/documents/upload', formData);
+    const { data } = await axiosInstance.post<DocumentUploadResponse>('/documents/upload', formData);
     return data;
 }

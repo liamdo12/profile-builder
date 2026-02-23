@@ -25,6 +25,7 @@ import java.util.List;
 /**
  * Main service for smart resume generation, regeneration, and retrieval.
  * Delegates AI work to SmartResumeOrchestrationService and persists results.
+ * All operations are scoped to the authenticated user (userId).
  */
 @Service
 public class SmartResumeGenerationService {
@@ -54,16 +55,18 @@ public class SmartResumeGenerationService {
 
     /**
      * Generates a new smart resume from a job description text and selected document IDs.
+     * Documents are verified to belong to the given user.
      */
-    public SmartGeneratedResumeResponse generate(String jdText, List<Long> documentIds) {
+    public SmartGeneratedResumeResponse generate(String jdText, List<Long> documentIds, Long userId) {
         log.info("Generating smart resume for {} document(s)", documentIds.size());
-        List<String> resumeTexts = extractResumeTexts(documentIds);
+        List<String> resumeTexts = extractResumeTexts(documentIds, userId);
 
         OrchestrationResult result = orchestrationService.orchestrate(resumeTexts, jdText);
 
         SmartGeneratedResume entity = new SmartGeneratedResume();
         entity.setJdText(jdText);
         entity.setDocumentIds(documentIds);
+        entity.setUserId(userId);
         persistResumeContent(entity, result.resumeOutput());
         SmartGeneratedResume saved = smartResumeRepository.save(entity);
 
@@ -78,14 +81,15 @@ public class SmartResumeGenerationService {
 
     /**
      * Regenerates an existing smart resume using the same JD and document IDs.
+     * Verifies ownership before proceeding.
      */
     @Transactional
-    public SmartGeneratedResumeResponse regenerate(Long id) {
-        SmartGeneratedResume entity = smartResumeRepository.findById(id)
+    public SmartGeneratedResumeResponse regenerate(Long id, Long userId) {
+        SmartGeneratedResume entity = smartResumeRepository.findByIdAndUserId(id, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Smart resume not found with id: " + id));
 
         log.info("Regenerating smart resume id={}", id);
-        List<String> resumeTexts = extractResumeTexts(entity.getDocumentIds());
+        List<String> resumeTexts = extractResumeTexts(entity.getDocumentIds(), userId);
         OrchestrationResult result = orchestrationService.orchestrate(resumeTexts, entity.getJdText());
 
         persistResumeContent(entity, result.resumeOutput());
@@ -104,10 +108,11 @@ public class SmartResumeGenerationService {
     /**
      * Applies selected recommendations to an existing smart resume.
      * Re-generates the resume with recommendations as constraints, then re-validates.
+     * Verifies ownership before proceeding.
      */
     @Transactional
-    public SmartGeneratedResumeResponse applyRecommendations(Long id, List<RecommendationItem> recommendations) {
-        SmartGeneratedResume entity = smartResumeRepository.findById(id)
+    public SmartGeneratedResumeResponse applyRecommendations(Long id, List<RecommendationItem> recommendations, Long userId) {
+        SmartGeneratedResume entity = smartResumeRepository.findByIdAndUserId(id, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Smart resume not found with id: " + id));
 
         log.info("Applying {} recommendations to smart resume id={}", recommendations.size(), id);
@@ -130,9 +135,10 @@ public class SmartResumeGenerationService {
 
     /**
      * Retrieves a previously generated smart resume with its validation data.
+     * Verifies ownership before returning.
      */
-    public SmartGeneratedResumeResponse getSmartResume(Long id) {
-        SmartGeneratedResume entity = smartResumeRepository.findById(id)
+    public SmartGeneratedResumeResponse getSmartResume(Long id, Long userId) {
+        SmartGeneratedResume entity = smartResumeRepository.findByIdAndUserId(id, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Smart resume not found with id: " + id));
 
         SmartResumeOutput resumeOutput = parseResumeContent(entity.getResumeContent());
@@ -148,20 +154,22 @@ public class SmartResumeGenerationService {
         return response;
     }
 
-    /** Retrieves and parses resume output by ID (used by DOCX service). */
-    public SmartResumeOutput getResumeOutput(Long id) {
-        SmartGeneratedResume entity = smartResumeRepository.findById(id)
+    /**
+     * Retrieves and parses resume output by ID, scoped to user (used by DOCX service).
+     */
+    public SmartResumeOutput getResumeOutput(Long id, Long userId) {
+        SmartGeneratedResume entity = smartResumeRepository.findByIdAndUserId(id, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Smart resume not found: " + id));
         return parseResumeContent(entity.getResumeContent());
     }
 
     // ── Private helpers ──────────────────────────────────────
 
-    /** Extracts text from each document PDF on disk. */
-    private List<String> extractResumeTexts(List<Long> documentIds) {
+    /** Extracts text from each document PDF on disk, verifying each doc belongs to the user. */
+    private List<String> extractResumeTexts(List<Long> documentIds, Long userId) {
         List<String> texts = new ArrayList<>();
         for (Long docId : documentIds) {
-            Document doc = documentRepository.findById(docId)
+            Document doc = documentRepository.findByIdAndUserId(docId, userId)
                     .orElseThrow(() -> new ResourceNotFoundException("Document not found with id: " + docId));
             String text = jdExtractionService.extractTextFromPath(Path.of(doc.getFilePath()));
             texts.add(text);

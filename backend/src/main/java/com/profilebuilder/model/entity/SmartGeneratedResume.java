@@ -36,6 +36,9 @@ public class SmartGeneratedResume {
     @Column(name = "personal_info", columnDefinition = "jsonb")
     private String personalInfo;
 
+    @Column(name = "user_id")
+    private Long userId;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

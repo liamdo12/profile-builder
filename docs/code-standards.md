@@ -271,6 +271,66 @@ toast.custom((t) => (
 ));
 ```
 
+### Authentication & Authorization Patterns
+
+**Using Auth Context:**
+```typescript
+import { useAuth } from '@/contexts/use-auth';
+
+export function ProfileMenu() {
+  const { user, logout, isAuthenticated } = useAuth();
+
+  if (!isAuthenticated) {
+    return <LoginPrompt />;
+  }
+
+  return (
+    <div>
+      <p>Welcome, {user?.email}</p>
+      <button onClick={logout}>Logout</button>
+    </div>
+  );
+}
+```
+
+**Protected Routes:**
+```typescript
+import { ProtectedRoute } from '@/components/shared/protected-route';
+import { RequireRole } from '@/components/shared/require-role';
+
+<Routes>
+  {/* Only logged-in users */}
+  <Route element={<ProtectedRoute />}>
+    <Route path="/documents" element={<DocumentListPage />} />
+  </Route>
+
+  {/* Only PREMIUM/ADMIN users */}
+  <Route element={<ProtectedRoute />}>
+    <Route element={<RequireRole roles={['PREMIUM', 'ADMIN']} />}>
+      <Route path="/cover-letter" element={<CoverLetterSetupPage />} />
+    </Route>
+  </Route>
+</Routes>
+```
+
+**API Calls with Auth:**
+```typescript
+import { apiClient } from '@/api/api-client'; // Already includes Bearer token
+
+async function loadUserDocuments() {
+  try {
+    // Token is automatically added via axios interceptor
+    const response = await apiClient.get('/api/documents');
+    return response.data;
+  } catch (error) {
+    // 401 errors automatically trigger token refresh
+    if (error?.response?.status === 401) {
+      // Retry queue handles this
+    }
+  }
+}
+```
+
 ## Backend Code Standards (Java)
 
 ### Project Structure
@@ -334,6 +394,87 @@ This eliminates manual getter/setter methods and constructors.
 - Implement `GlobalExceptionHandler` for consistent error responses
 - Log all exceptions with appropriate level (WARN for business logic, ERROR for system failures)
 
+### Authentication & Authorization Patterns
+
+**Accessing Authenticated User:**
+```java
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+
+// In Controller or Service
+Long userId = Long.parseLong(
+  SecurityContextHolder.getContext()
+    .getAuthentication()
+    .getName()
+);
+
+// Or use @AuthenticationPrincipal annotation
+@PostMapping("/documents/upload")
+public DocumentResponse upload(
+    @AuthenticationPrincipal Authentication auth,
+    @RequestParam("file") MultipartFile file) {
+  Long userId = Long.parseLong(auth.getName());
+  // Process with user isolation
+}
+```
+
+**Data Isolation Pattern:**
+```java
+// All queries must include user_id filter
+public List<Document> getUserDocuments(Long userId) {
+  return documentRepository.findByUserId(userId);
+}
+
+// Save with user association
+public Document saveDocument(Document doc, Long userId) {
+  doc.setUserId(userId);
+  return documentRepository.save(doc);
+}
+```
+
+**Role-Based Access Control:**
+```java
+@RestController
+@RequestMapping("/api/cover-letter")
+public class CoverLetterController {
+  // Only PREMIUM or ADMIN can generate
+  @PreAuthorize("hasRole('PREMIUM') or hasRole('ADMIN')")
+  @PostMapping("/generate")
+  public CoverLetterResponse generate(@RequestBody CoverLetterRequest req) {
+    // Implementation
+  }
+}
+
+@RestController
+@RequestMapping("/api/admin")
+public class AdminController {
+  // Only ADMIN users
+  @PreAuthorize("hasRole('ADMIN')")
+  @GetMapping("/users")
+  public List<UserResponse> listUsers() {
+    // Implementation
+  }
+}
+```
+
+**JWT Token Management (AuthService):**
+```java
+// Token generation with expiration
+public AuthResponse login(String email, String password) {
+  User user = authenticate(email, password);
+  String accessToken = generateAccessToken(user);    // 15 min
+  String refreshToken = generateRefreshToken(user);  // 7 days
+  return new AuthResponse(accessToken, refreshToken, user);
+}
+
+// Token refresh
+public AuthResponse refreshToken(String refreshToken) {
+  User user = validateAndExtractUser(refreshToken);
+  String newAccessToken = generateAccessToken(user);
+  return new AuthResponse(newAccessToken, refreshToken, user);
+}
+```
+
 ### Testing Standards
 - Unit tests: `XyzServiceTest.java` (test business logic)
 - Integration tests: `XyzControllerTest.java` (test endpoints)
@@ -394,20 +535,33 @@ async function generateSmartResume(
 ## Security Standards
 
 ### Frontend
+- **JWT Token Storage:** Store accessToken in memory (lost on page reload) or sessionStorage
+- **Refresh Token:** Store in httpOnly cookie if possible, or sessionStorage as fallback
+- Never store tokens in localStorage (persistent across sessions, vulnerable to XSS)
 - Never store sensitive data in localStorage (only theme preference)
+- **Axios Interceptor:** Automatically add Bearer token to all API requests
+- **Token Refresh:** Implement 401 error handler with automatic retry queue
 - Validate input before sending to API
 - Sanitize rendered content with DOMPurify before using `dangerouslySetInnerHTML`
 - Use HTTPS in production
 - Implement CSRF protection if needed
 - Use whitelist approach for allowed HTML tags and attributes
+- **Protected Routes:** Use ProtectedRoute wrapper for pages requiring authentication
+- **Role-Based UI:** Use RequireRole component for feature-level access control
 
 ### Backend
-- Validate all API inputs
+- **Password Hashing:** Always use bcrypt via Spring Security (never store plain passwords)
+- **JWT Secret:** Use strong, Base64-encoded secret (>= 256 bits), store in JWT_SECRET env var
+- **Token Expiration:** Access tokens 15 min, refresh tokens 7 days
+- **Data Isolation:** All queries include user_id filter via SecurityContext
+- **Role-Based Access:** Use @PreAuthorize annotations on sensitive endpoints
+- Validate all API inputs with Spring validation annotations
 - Use parameterized queries (JPA handles this)
-- Hash/encrypt sensitive data at rest
-- Implement rate limiting
-- Log security events
+- Implement rate limiting on auth endpoints
+- Log all authentication attempts and failures
 - Don't expose stack traces in error responses
+- Extract user from SecurityContext, never from request parameters
+- Initialize ADMIN user via AdminUserSeeder using ADMIN_PASSWORD env var
 
 ## Git & Commit Standards
 

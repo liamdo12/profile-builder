@@ -3,6 +3,7 @@ package com.profilebuilder.controller;
 import com.profilebuilder.ai.dto.SmartResumeOutput;
 import com.profilebuilder.model.dto.ApplyRecommendationsRequest;
 import com.profilebuilder.model.dto.SmartGeneratedResumeResponse;
+import com.profilebuilder.model.entity.User;
 import com.profilebuilder.service.SmartResumeDocxService;
 import com.profilebuilder.util.FileValidationUtil;
 import jakarta.validation.Valid;
@@ -12,6 +13,7 @@ import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -20,6 +22,7 @@ import java.util.List;
 /**
  * REST controller for smart resume generation endpoints.
  * Uses a two-agent AI pipeline: resume generator + HR validator.
+ * All endpoints are scoped to the authenticated user.
  */
 @RestController
 @RequestMapping("/api/smart-resume")
@@ -44,10 +47,12 @@ public class SmartResumeController {
     @PostMapping("/generate")
     public ResponseEntity<SmartGeneratedResumeResponse> generate(
             @RequestParam("jdFile") MultipartFile jdFile,
-            @RequestParam("documentIds") List<Long> documentIds) {
+            @RequestParam("documentIds") List<Long> documentIds,
+            @AuthenticationPrincipal User user) {
+
         FileValidationUtil.validateJdFile(jdFile);
         String jdText = jdExtractionService.extractText(jdFile);
-        SmartGeneratedResumeResponse response = smartResumeGenerationService.generate(jdText, documentIds);
+        SmartGeneratedResumeResponse response = smartResumeGenerationService.generate(jdText, documentIds, user.getId());
         return ResponseEntity.ok(response);
     }
 
@@ -56,8 +61,11 @@ public class SmartResumeController {
      * Retrieves a previously generated smart resume with its HR validation data.
      */
     @GetMapping("/{id}")
-    public ResponseEntity<SmartGeneratedResumeResponse> getSmartResume(@PathVariable Long id) {
-        return ResponseEntity.ok(smartResumeGenerationService.getSmartResume(id));
+    public ResponseEntity<SmartGeneratedResumeResponse> getSmartResume(
+            @PathVariable Long id,
+            @AuthenticationPrincipal User user) {
+
+        return ResponseEntity.ok(smartResumeGenerationService.getSmartResume(id, user.getId()));
     }
 
     /**
@@ -65,8 +73,11 @@ public class SmartResumeController {
      * Re-runs the AI pipeline for an existing smart resume using the same JD and documents.
      */
     @PostMapping("/{id}/regenerate")
-    public ResponseEntity<SmartGeneratedResumeResponse> regenerate(@PathVariable Long id) {
-        return ResponseEntity.ok(smartResumeGenerationService.regenerate(id));
+    public ResponseEntity<SmartGeneratedResumeResponse> regenerate(
+            @PathVariable Long id,
+            @AuthenticationPrincipal User user) {
+
+        return ResponseEntity.ok(smartResumeGenerationService.regenerate(id, user.getId()));
     }
 
     /**
@@ -76,9 +87,11 @@ public class SmartResumeController {
     @PostMapping("/{id}/apply-recommendations")
     public ResponseEntity<SmartGeneratedResumeResponse> applyRecommendations(
             @PathVariable Long id,
-            @RequestBody @Valid ApplyRecommendationsRequest request) {
+            @RequestBody @Valid ApplyRecommendationsRequest request,
+            @AuthenticationPrincipal User user) {
+
         return ResponseEntity.ok(
-                smartResumeGenerationService.applyRecommendations(id, request.getRecommendations()));
+                smartResumeGenerationService.applyRecommendations(id, request.getRecommendations(), user.getId()));
     }
 
     /**
@@ -86,8 +99,11 @@ public class SmartResumeController {
      * Downloads a DOCX file for the generated smart resume.
      */
     @GetMapping("/{id}/download-docx")
-    public ResponseEntity<byte[]> downloadDocx(@PathVariable Long id) {
-        SmartResumeOutput resumeOutput = smartResumeGenerationService.getResumeOutput(id);
+    public ResponseEntity<byte[]> downloadDocx(
+            @PathVariable Long id,
+            @AuthenticationPrincipal User user) {
+
+        SmartResumeOutput resumeOutput = smartResumeGenerationService.getResumeOutput(id, user.getId());
         byte[] docxBytes = smartResumeDocxService.generateDocx(resumeOutput);
         String fullName = resumeOutput.getPersonalInfo() != null
                 ? resumeOutput.getPersonalInfo().getFullName() : "resume";

@@ -1,19 +1,24 @@
 package com.profilebuilder.controller;
 
 import com.profilebuilder.model.dto.CoverLetterResponse;
+import com.profilebuilder.model.entity.User;
 import com.profilebuilder.service.CoverLetterGenerationService;
 import com.profilebuilder.service.JdExtractionService;
 import com.profilebuilder.util.FileValidationUtil;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 /**
  * REST controller for cover letter generation endpoints.
  * Uses a two-agent AI pipeline: company researcher + cover letter generator.
+ * Restricted to PREMIUM and ADMIN roles. All endpoints are scoped to the authenticated user.
  */
 @RestController
 @RequestMapping("/api/cover-letter")
+@PreAuthorize("hasAnyRole('PREMIUM','ADMIN')")
 public class CoverLetterController {
 
     private final JdExtractionService jdExtractionService;
@@ -33,10 +38,12 @@ public class CoverLetterController {
     public ResponseEntity<CoverLetterResponse> generate(
             @RequestParam("jdFile") MultipartFile jdFile,
             @RequestParam("resumeDocId") Long resumeDocId,
-            @RequestParam("coverLetterDocId") Long coverLetterDocId) {
+            @RequestParam("coverLetterDocId") Long coverLetterDocId,
+            @AuthenticationPrincipal User user) {
+
         FileValidationUtil.validateJdFile(jdFile);
         String jdText = jdExtractionService.extractText(jdFile);
-        CoverLetterResponse response = coverLetterGenerationService.generate(jdText, resumeDocId, coverLetterDocId);
+        CoverLetterResponse response = coverLetterGenerationService.generate(jdText, resumeDocId, coverLetterDocId, user.getId());
         return ResponseEntity.ok(response);
     }
 
@@ -45,8 +52,11 @@ public class CoverLetterController {
      * Retrieves a previously generated cover letter with its evaluation data if available.
      */
     @GetMapping("/{id}")
-    public ResponseEntity<CoverLetterResponse> getCoverLetter(@PathVariable Long id) {
-        return ResponseEntity.ok(coverLetterGenerationService.getCoverLetter(id));
+    public ResponseEntity<CoverLetterResponse> getCoverLetter(
+            @PathVariable Long id,
+            @AuthenticationPrincipal User user) {
+
+        return ResponseEntity.ok(coverLetterGenerationService.getCoverLetter(id, user.getId()));
     }
 
     /**
@@ -54,7 +64,10 @@ public class CoverLetterController {
      * Runs the evaluator agent on an existing cover letter and persists the result.
      */
     @PostMapping("/{id}/evaluate")
-    public ResponseEntity<CoverLetterResponse> evaluate(@PathVariable Long id) {
-        return ResponseEntity.ok(coverLetterGenerationService.evaluate(id));
+    public ResponseEntity<CoverLetterResponse> evaluate(
+            @PathVariable Long id,
+            @AuthenticationPrincipal User user) {
+
+        return ResponseEntity.ok(coverLetterGenerationService.evaluate(id, user.getId()));
     }
 }

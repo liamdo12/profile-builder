@@ -7,41 +7,54 @@
 │                         Frontend (React 19)                       │
 │  ┌──────────────────────────────────────────────────────────┐   │
 │  │  Pages: Upload, Analysis, Resume Review, Smart Resume   │   │
+│  │  Auth Pages: LoginPage, RegisterPage, AdminUserMgmt     │   │
 │  │  Components: shadcn/ui, Resume Renderers, Sidebars      │   │
-│  │  State: React Hooks + Context (Theme, User Data)        │   │
+│  │  State: React Hooks + Context (Theme, Auth, User)       │   │
 │  │  Styling: Tailwind CSS v4 + CSS Variables               │   │
+│  │  Security: ProtectedRoute, RequireRole, Bearer tokens   │   │
 │  └──────────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────────┘
                               │
                     ┌─────────▼──────────┐
-                    │   HTTP (Axios)     │
-                    │   REST API Client  │
+                    │  HTTP (Axios)      │
+                    │  JWT Bearer Token  │
+                    │  Auto-refresh 401  │
                     └─────────┬──────────┘
                               │
 ┌─────────────────────────────────────────────────────────────────┐
 │                      Backend (Spring Boot 3)                      │
 │  ┌──────────────────────────────────────────────────────────┐   │
-│  │  REST Controllers                                         │   │
-│  │  ├── DocumentController                                  │   │
-│  │  ├── SmartResumeController                               │   │
-│  │  └── CoverLetterController                               │   │
+│  │  Security Layer                                          │   │
+│  │  ├── Spring Security config                             │   │
+│  │  ├── JWT authentication filter                          │   │
+│  │  ├── @PreAuthorize for role-based access                │   │
+│  │  └── SecurityContext for user isolation                 │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │  Auth Controllers                                        │   │
+│  │  ├── AuthController (register, login, refresh, me)      │   │
+│  │  └── AdminController (user management)                  │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │  REST Controllers (Protected)                            │   │
+│  │  ├── DocumentController (@PostAuthorize user check)     │   │
+│  │  ├── SmartResumeController (user-scoped queries)        │   │
+│  │  └── CoverLetterController (@PreAuthorize(PREMIUM))     │   │
 │  └──────────────────────────────────────────────────────────┘   │
 │  ┌──────────────────────────────────────────────────────────┐   │
 │  │  Business Logic (Services)                               │   │
-│  │  ├── DocumentService                                     │   │
-│  │  ├── JdExtractionService                                 │   │
-│  │  ├── SmartResumeOrchestrationService                     │   │
-│  │  ├── SmartResumeGenerationService                        │   │
-│  │  ├── CoverLetterOrchestrationService                     │   │
-│  │  └── CoverLetterGenerationService                        │   │
+│  │  ├── AuthService (token generation, validation)         │   │
+│  │  ├── DocumentService (user-scoped queries)              │   │
+│  │  ├── SmartResumeOrchestrationService                    │   │
+│  │  ├── CoverLetterOrchestrationService                    │   │
+│  │  └── (other services)                                   │   │
 │  └──────────────────────────────────────────────────────────┘   │
 │  ┌──────────────────────────────────────────────────────────┐   │
 │  │  Data Access (Repositories)                              │   │
-│  │  ├── DocumentRepository                                  │   │
-│  │  ├── SmartGeneratedResumeRepository                      │   │
-│  │  ├── SmartHrValidationRepository                         │   │
-│  │  ├── GeneratedCoverLetterRepository                      │   │
-│  │  └── CoverLetterEvaluationRepository                     │   │
+│  │  ├── UserRepository (authentication)                     │   │
+│  │  ├── DocumentRepository (scoped by user_id)             │   │
+│  │  ├── SmartGeneratedResumeRepository (user-scoped)       │   │
+│  │  └── (other repositories)                               │   │
 │  └──────────────────────────────────────────────────────────┘   │
 │  ┌──────────────────────────────────────────────────────────┐   │
 │  │  AI Integration Layer                                    │   │
@@ -56,14 +69,85 @@
 │                    PostgreSQL Database                            │
 │  ┌──────────────────────────────────────────────────────────┐   │
 │  │  Tables:                                                 │   │
-│  │  ├── documents (uploaded files)                          │   │
-│  │  ├── smart_generated_resumes (AI-generated resumes)      │   │
-│  │  ├── smart_hr_validations (HR validation results)        │   │
-│  │  ├── pb_generated_cover_letters (generated letters)      │   │
-│  │  └── pb_cover_letter_evaluations (evaluation results)    │   │
+│  │  ├── pb_users (authentication, roles)                    │   │
+│  │  ├── documents (uploaded files, scoped by user_id)      │   │
+│  │  ├── smart_generated_resumes (scoped by user_id)        │   │
+│  │  ├── smart_hr_validations                               │   │
+│  │  ├── pb_generated_cover_letters (scoped by user_id)     │   │
+│  │  └── pb_cover_letter_evaluations                        │   │
 │  └──────────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────────┘
 ```
+
+## Authentication & Authorization
+
+### JWT Token Flow
+
+```
+User (Frontend)
+    │
+    ├─ POST /api/auth/register (email, password)
+    │   ├─ Backend validates input, hashes password
+    │   ├─ Creates User entity (BASIC role)
+    │   └─ Returns AuthResponse (accessToken, refreshToken)
+    │
+    ├─ POST /api/auth/login (email, password)
+    │   ├─ Backend validates credentials
+    │   ├─ Generates JWT tokens
+    │   │   ├─ Access Token (15 min expiry)
+    │   │   └─ Refresh Token (7 days expiry)
+    │   └─ Returns AuthResponse
+    │
+    ├─ All subsequent API calls
+    │   ├─ Frontend adds Authorization: Bearer {accessToken}
+    │   ├─ JwtAuthenticationFilter validates token
+    │   ├─ Sets SecurityContext with authenticated user
+    │   └─ Controllers access via @AuthenticationPrincipal or SecurityContextHolder
+    │
+    └─ POST /api/auth/refresh (refreshToken)
+        ├─ Backend validates refresh token
+        ├─ Issues new access token (same refresh token)
+        └─ Frontend updates local token state
+```
+
+### Role-Based Access Control (RBAC)
+
+**Available Roles:**
+- **BASIC** - Default role on registration, limited access to core features
+- **PREMIUM** - Unlocks cover letter generation, advanced features
+- **ADMIN** - User management, system-wide permissions
+
+**Role-Based Endpoint Protection:**
+```
+@PreAuthorize("hasRole('BASIC')")      → Only BASIC+ users
+@PreAuthorize("hasRole('PREMIUM')")    → Only PREMIUM+ users
+@PreAuthorize("hasRole('ADMIN')")      → Only ADMIN users
+```
+
+**Example: CoverLetterController**
+- `@PreAuthorize("hasRole('PREMIUM')")` protects cover letter generation
+- Only PREMIUM and ADMIN roles can generate cover letters
+
+### Data Isolation Pattern
+
+All user data is isolated using the authenticated user's ID:
+
+```java
+// AuthService extracts userId from SecurityContext
+Long userId = SecurityContextHolder.getContext()
+  .getAuthentication().getName(); // Returns user ID as String
+
+// DocumentService fetches only user's documents
+List<Document> docs = documentRepository
+  .findByUserId(userId);
+
+// SmartResumeService saves with user ownership
+SmartGeneratedResume resume = new SmartGeneratedResume();
+resume.setUserId(userId);
+resumeRepository.save(resume);
+```
+
+All queries in services and repositories include `WHERE user_id = ?` to prevent cross-user data access.
 
 ## Data Flow Architectures
 
@@ -247,9 +331,16 @@ Located in `src/components/shared/`:
 
 ### Core Tables
 
-**documents**
+**pb_users** (Authentication)
 - id (PK)
-- user_id (FK)
+- email (UNIQUE)
+- password (hashed)
+- role (ENUM: BASIC, PREMIUM, ADMIN)
+- created_at, updated_at
+
+**documents** (User Content)
+- id (PK)
+- user_id (FK → pb_users)
 - type (RESUME, JOB_DESCRIPTION)
 - file_path, file_name
 - created_at, updated_at
@@ -448,12 +539,16 @@ useEffect(() => {
 - XSS protection via React's built-in escaping
 
 ### Backend Security
-- Input validation at API boundaries
-- Parameterized queries (JPA prevents SQL injection)
-- Error messages don't expose stack traces
-- Rate limiting on API endpoints
-- Secure file upload handling
-- No hardcoded credentials (env vars)
+- **JWT Authentication:** Spring Security with JWT tokens (access 15min, refresh 7days)
+- **Password Hashing:** bcrypt for secure password storage
+- **Data Isolation:** All queries scoped to authenticated user_id via SecurityContext
+- **Role-Based Access:** @PreAuthorize annotations enforce RBAC
+- **Input Validation:** Spring validation annotations at API boundaries
+- **SQL Injection Prevention:** Parameterized queries via JPA/Hibernate
+- **Error Handling:** Consistent responses, no stack trace exposure
+- **Rate Limiting:** Configurable limits on auth endpoints
+- **Secure File Upload:** Type and size validation, user-scoped storage
+- **Environment Variables:** API keys, JWT_SECRET, ADMIN_PASSWORD via .env
 
 ## Deployment Architecture
 

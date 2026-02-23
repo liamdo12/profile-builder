@@ -46,6 +46,9 @@ public class Document {
     @Column(name = "file_size", nullable = false)
     private Long fileSize;
 
+    @Column(name = "user_id")
+    private Long userId;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

@@ -87,20 +87,30 @@ profile-builder/
 
 ### Key Features Implemented
 
-**Pages (6 total)**
-1. DocumentListPage - Browse uploaded documents
-2. UploadPage - Upload resume documents
-3. SmartResumeSetupPage - AI resume setup
-4. SmartResumeResultPage - AI-generated resume display
-5. CoverLetterSetupPage - 3-step cover letter generation (JD upload, resume select, master cover letter select)
-6. CoverLetterResultPage - Generated cover letter display with on-demand evaluation
+**Pages (8 total)**
+1. LoginPage - User login with email/password
+2. RegisterPage - User registration with email/password
+3. DocumentListPage - Browse uploaded documents
+4. UploadPage - Upload resume documents
+5. SmartResumeSetupPage - AI resume setup
+6. SmartResumeResultPage - AI-generated resume display
+7. CoverLetterSetupPage - 3-step cover letter generation (JD upload, resume select, master cover letter select)
+8. CoverLetterResultPage - Generated cover letter display with on-demand evaluation
+9. AdminUserManagementPage - (ADMIN only) User management with role updates
 
 **Component Organization**
 - `src/components/ui/` - 14 shadcn/ui primitive components
 - `src/components/layout/` - AppLayout, AppSidebar, ThemeProvider, ThemeToggle
 - `src/components/resume/` - SmartResumePaper, HrValidationPanel, RecommendationCard
 - `src/components/cover-letter/` - CoverLetterDisplay, CoverLetterEvaluationPanel
-- `src/components/shared/` - GenerationOverlay (reusable fullscreen overlay), common UI patterns
+- `src/components/shared/` - GenerationOverlay, ProtectedRoute, RequireRole, common UI patterns
+
+**Auth Context** (NEW)
+- `src/contexts/auth-context.tsx` - AuthProvider context with token state management
+- `src/contexts/auth-context-value.ts` - AuthContextValue interface & token types
+- `src/contexts/use-auth.ts` - useAuth hook for accessing auth state and methods
+- Token hydration on app load, axios interceptor for Bearer token injection
+- Automatic token refresh on 401 errors with request retry queue
 
 **Styling System**
 - Tailwind CSS v4 (CSS-first configuration)
@@ -144,31 +154,47 @@ profile-builder/
 - **Database:** PostgreSQL 16
 - **ORM:** Spring Data JPA / Hibernate
 - **Migration:** Flyway
+- **Security:** Spring Security 6, JWT (jjwt 0.12.6)
+- **Password Hashing:** bcrypt via Spring Security
 - **AI Integration:** Claude, OpenAI GPT-4, Google Gemini APIs
 - **Testing:** JUnit 5, Mockito, Spring Boot Test
 
 ### REST API Endpoints (Controllers)
 
-**DocumentController**
-- POST /api/documents/upload - Upload documents
-- GET /api/documents - List documents
+**AuthController** (NEW - Authentication)
+- POST /api/auth/register - Register new user (email, password) → creates BASIC user
+- POST /api/auth/login - Login (email, password) → returns accessToken + refreshToken
+- POST /api/auth/refresh - Refresh access token using refresh token
+- GET /api/auth/me - Get current authenticated user info
+
+**AdminController** (NEW - User Management)
+- GET /api/admin/users - List all users (ADMIN only)
+- PUT /api/admin/users/{id} - Update user role (ADMIN only)
+
+**DocumentController** (Updated - Now Scoped to User)
+- POST /api/documents/upload - Upload documents (requires authentication)
+- GET /api/documents - List user's documents
 - GET /api/documents/{id} - Get document details
 - DELETE /api/documents/{id} - Delete document
 
-**SmartResumeController**
-- POST /api/smart-resumes/generate - AI-powered generation
-- GET /api/smart-resumes/{id} - Get AI resume
+**SmartResumeController** (Updated - Now Scoped to User)
+- POST /api/smart-resumes/generate - AI-powered generation (user-scoped)
+- GET /api/smart-resumes/{id} - Get user's AI resume
 - GET /api/smart-resumes/{id}/validation - Get HR validation
 
-**CoverLetterController**
-- POST /api/cover-letter/generate - Generate cover letter from JD + resume + master letter
+**CoverLetterController** (Updated - Role-Protected)
+- POST /api/cover-letter/generate - Generate cover letter (@PreAuthorize PREMIUM/ADMIN)
 - GET /api/cover-letter/{id} - Retrieve generated cover letter
 - POST /api/cover-letter/{id}/evaluate - Evaluate cover letter quality
 
 ### Service Layer
 
+**Authentication & Authorization** (NEW)
+- **AuthService** - User registration, login, token generation/validation, refresh token handling
+- User authentication via Spring Security with JWT tokens
+
 **Core Services**
-- **DocumentService** - Manage document uploads and storage
+- **DocumentService** - Manage document uploads (user-scoped queries)
 - **JdExtractionService** - Extract JD requirements & keywords
 
 **Smart Resume Services**

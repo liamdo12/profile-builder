@@ -60,6 +60,13 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.BAD_REQUEST, "Bad Request", ex.getMessage());
     }
 
+    // ── 401 Unauthorized ─────────────────────────────────────
+
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<Map<String, Object>> handleAuthentication(AuthenticationException ex) {
+        return buildResponse(HttpStatus.UNAUTHORIZED, "Unauthorized", ex.getMessage());
+    }
+
     // ── 404 Not Found ────────────────────────────────────────
 
     @ExceptionHandler(ResourceNotFoundException.class)

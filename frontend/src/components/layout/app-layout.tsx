@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Menu, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { AppSidebar } from '@/components/layout/app-sidebar'
+import { useAuth } from '@/contexts/use-auth'
 import { cn } from '@/lib/utils'
 
 interface AppLayoutProps {
@@ -10,6 +11,7 @@ interface AppLayoutProps {
 
 export function AppLayout({ children }: AppLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const { user } = useAuth()
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -44,6 +46,13 @@ export function AppLayout({ children }: AppLayoutProps) {
             {sidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             <span className="sr-only">Toggle sidebar</span>
           </Button>
+
+          {/* Mobile user display */}
+          {user && (
+            <span className="text-sm font-medium text-muted-foreground lg:hidden">
+              {user.username}
+            </span>
+          )}
         </header>
         <main className="flex-1 overflow-auto">
           <div className="px-4 py-6 md:px-6 lg:px-8">

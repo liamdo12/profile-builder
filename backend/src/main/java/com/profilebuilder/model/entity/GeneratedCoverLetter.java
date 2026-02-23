@@ -37,6 +37,9 @@ public class GeneratedCoverLetter {
     @Column(name = "cover_letter_content", nullable = false, columnDefinition = "TEXT")
     private String coverLetterContent;
 
+    @Column(name = "user_id")
+    private Long userId;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
