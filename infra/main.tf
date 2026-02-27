@@ -21,10 +21,13 @@ module "rds" {
   rds_security_group_id = module.vpc.rds_security_group_id
 }
 
+data "aws_caller_identity" "current" {}
+
 module "s3" {
-  source       = "./modules/s3"
-  project_name = var.project_name
-  environment  = var.environment
+  source         = "./modules/s3"
+  project_name   = var.project_name
+  environment    = var.environment
+  aws_account_id = data.aws_caller_identity.current.account_id
 }
 
 module "secrets" {

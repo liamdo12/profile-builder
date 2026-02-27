@@ -1,3 +1,5 @@
-# Profile Builder Documentation
+# Profile Builder - Project Overview & PDR
 
-Welcome to the Profile Builder documentation hub. This directory contains comprehensive documentation for the full-stack AI-powered resume management platform.
+## Project Summary
+
+Profile Builder is a full-stack AI-powered resume management and generation platform. It enables users to upload resumes, analyze job descriptions, and generate tailored resume versions using intelligent algorithms and AI models.

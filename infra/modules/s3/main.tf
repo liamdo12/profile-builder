@@ -1,5 +1,5 @@
 resource "aws_s3_bucket" "uploads" {
-  bucket        = "${var.project_name}-${var.environment}-uploads"
+  bucket        = "${var.project_name}-${var.environment}-uploads-${var.aws_account_id}"
   force_destroy = true
 
   tags = { Name = "${var.project_name}-${var.environment}-uploads" }
@@ -30,6 +30,7 @@ resource "aws_s3_bucket_lifecycle_configuration" "uploads" {
   rule {
     id     = "cleanup-staging"
     status = "Enabled"
+    filter {}
 
     expiration {
       days = 90
