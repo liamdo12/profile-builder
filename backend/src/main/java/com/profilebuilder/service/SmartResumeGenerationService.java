@@ -18,7 +18,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.profilebuilder.model.dto.RecommendationItem;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -171,7 +170,7 @@ public class SmartResumeGenerationService {
         for (Long docId : documentIds) {
             Document doc = documentRepository.findByIdAndUserId(docId, userId)
                     .orElseThrow(() -> new ResourceNotFoundException("Document not found with id: " + docId));
-            String text = jdExtractionService.extractTextFromPath(Path.of(doc.getFilePath()));
+            String text = jdExtractionService.extractTextFromPath(doc.getFilePath());
             texts.add(text);
         }
         return texts;

@@ -17,6 +17,7 @@ import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 import java.io.IOException;
@@ -145,6 +146,30 @@ public class DocumentService {
             throw new RuntimeException("Failed to store file: " + storedFileName, e);
         }
         return targetPath.toString();
+    }
+
+    /**
+     * Read file bytes from S3 or local filesystem based on path prefix.
+     */
+    public byte[] readFileBytes(String filePath) {
+        try {
+            if (filePath.startsWith("s3://")) {
+                if (!useS3()) {
+                    throw new RuntimeException("S3 not configured but file stored in S3: " + filePath);
+                }
+                String prefix = "s3://" + s3BucketName + "/";
+                String key = filePath.substring(prefix.length());
+                return s3Client.getObjectAsBytes(
+                    GetObjectRequest.builder()
+                        .bucket(s3BucketName)
+                        .key(key)
+                        .build()
+                ).asByteArray();
+            }
+            return Files.readAllBytes(Path.of(filePath));
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to read file: " + filePath, e);
+        }
     }
 
     /**

@@ -18,7 +18,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-import java.nio.file.Path;
 import java.util.Map;
 
 /**
@@ -142,7 +141,7 @@ public class CoverLetterGenerationService {
     private String extractDocumentText(Long docId, Long userId) {
         Document doc = documentRepository.findByIdAndUserId(docId, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Document not found with id: " + docId));
-        return jdExtractionService.extractTextFromPath(Path.of(doc.getFilePath()));
+        return jdExtractionService.extractTextFromPath(doc.getFilePath());
     }
 
     /** Serializes orchestration result into entity fields. */

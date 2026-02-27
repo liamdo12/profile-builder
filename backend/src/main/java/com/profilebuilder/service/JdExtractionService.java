@@ -14,8 +14,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.Base64;
 
 /**
@@ -27,9 +25,11 @@ public class JdExtractionService {
     private static final Logger log = LoggerFactory.getLogger(JdExtractionService.class);
 
     private final ChatModel chatLanguageModel;
+    private final DocumentService documentService;
 
-    public JdExtractionService(ChatModel chatLanguageModel) {
+    public JdExtractionService(ChatModel chatLanguageModel, DocumentService documentService) {
         this.chatLanguageModel = chatLanguageModel;
+        this.documentService = documentService;
     }
 
     /**
@@ -54,11 +54,11 @@ public class JdExtractionService {
     }
 
     /**
-     * Extract text from a file on disk (PDF only for resumes).
+     * Extract text from a file stored in S3 or local filesystem (PDF only for resumes).
      */
-    public String extractTextFromPath(Path filePath) {
+    public String extractTextFromPath(String filePath) {
         try {
-            byte[] bytes = Files.readAllBytes(filePath);
+            byte[] bytes = documentService.readFileBytes(filePath);
             try (PDDocument document = Loader.loadPDF(bytes)) {
                 PDFTextStripper stripper = new PDFTextStripper();
                 String text = stripper.getText(document);
@@ -66,7 +66,7 @@ public class JdExtractionService {
                 return text;
             }
         } catch (IOException e) {
-            throw new InvalidFileException("Failed to extract text from file: " + e.getMessage());
+            throw new InvalidFileException("Failed to extract text from file: " + filePath, e);
         }
     }
 
