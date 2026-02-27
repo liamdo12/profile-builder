@@ -17,3 +17,9 @@ variable "public_subnet_ids" {
 variable "alb_security_group_id" {
   type = string
 }
+
+variable "domain_name" {
+  description = "Custom domain name for ACM certificate. Empty = HTTP only."
+  type        = string
+  default     = ""
+}

@@ -43,7 +43,8 @@ module "secrets" {
   admin_password = var.admin_password
   openai_api_key = var.openai_api_key
   tavily_api_key = var.tavily_api_key
-  s3_bucket_name = module.s3.bucket_name
+  s3_bucket_name       = module.s3.bucket_name
+  cors_allowed_origins = var.domain_name != "" ? "https://${var.domain_name}" : "*"
 }
 
 module "alb" {
@@ -53,6 +54,7 @@ module "alb" {
   vpc_id                = module.vpc.vpc_id
   public_subnet_ids     = module.vpc.public_subnet_ids
   alb_security_group_id = module.vpc.alb_security_group_id
+  domain_name           = var.domain_name
 }
 
 module "ecs" {

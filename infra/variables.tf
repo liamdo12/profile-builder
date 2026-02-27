@@ -64,6 +64,12 @@ variable "tavily_api_key" {
   sensitive   = true
 }
 
+variable "domain_name" {
+  description = "Custom domain name (e.g., app.example.com). Leave empty to skip HTTPS/ACM setup."
+  type        = string
+  default     = ""
+}
+
 variable "github_repo" {
   description = "GitHub repository (org/repo format)"
   type        = string

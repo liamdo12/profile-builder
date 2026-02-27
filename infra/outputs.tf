@@ -24,3 +24,8 @@ output "github_actions_role_arn" {
   description = "IAM role ARN for GitHub Actions OIDC"
   value       = module.ecs.github_actions_role_arn
 }
+
+output "acm_validation_records" {
+  description = "Add these DNS records at your registrar to validate the ACM certificate"
+  value       = module.alb.acm_certificate_validation_records
+}
