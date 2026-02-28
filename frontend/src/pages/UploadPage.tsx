@@ -41,7 +41,7 @@ export default function UploadPage() {
     try {
       await uploadDocument(rawFile, documentType)
       toast.success('Document uploaded successfully')
-      navigate('/')
+      navigate('/documents')
     } catch (err: unknown) {
       const error = err as { response?: { data?: { message?: string } } }
       toast.error(error?.response?.data?.message || 'Upload failed')

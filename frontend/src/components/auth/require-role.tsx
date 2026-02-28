@@ -17,7 +17,7 @@ export function RequireRole({ allowed, children }: RequireRoleProps) {
   const { user } = useAuth();
 
   if (!user || !allowed.includes(user.role)) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/documents" replace />;
   }
 
   return <>{children}</>;

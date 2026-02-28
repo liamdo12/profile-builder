@@ -107,20 +107,22 @@ profile-builder/
 
 ### Key Features Implemented
 
-**Pages (8 total)**
-1. LoginPage - User login with email/password
-2. RegisterPage - User registration with email/password
-3. DocumentListPage - Browse uploaded documents
-4. UploadPage - Upload resume documents
-5. SmartResumeSetupPage - AI resume setup
-6. SmartResumeResultPage - AI-generated resume display
-7. CoverLetterSetupPage - 3-step cover letter generation (JD upload, resume select, master cover letter select)
-8. CoverLetterResultPage - Generated cover letter display with on-demand evaluation
-9. AdminUserManagementPage - (ADMIN only) User management with role updates
+**Pages (9 total)**
+1. LandingPage - Public marketing page with always-dark Luma aesthetic, gradient glow backgrounds, glassmorphism cards, SVG noise overlay
+2. LoginPage - User login with email/password (dark gradient background, glass card styling)
+3. RegisterPage - User registration with email/password (dark gradient background, glass card styling)
+4. DocumentListPage - Browse uploaded documents
+5. UploadPage - Upload resume documents
+6. SmartResumeSetupPage - AI resume setup
+7. SmartResumeResultPage - AI-generated resume display
+8. CoverLetterSetupPage - 3-step cover letter generation (JD upload, resume select, master cover letter select)
+9. CoverLetterResultPage - Generated cover letter display with on-demand evaluation
+10. AdminUserManagementPage - (ADMIN only) User management with role updates
 
 **Component Organization**
 - `src/components/ui/` - 14 shadcn/ui primitive components
 - `src/components/layout/` - AppLayout, AppSidebar, ThemeProvider, ThemeToggle
+- `src/components/landing/` - Landing page sections (header, hero, features, how-it-works, stats, CTA, footer) + design systems (gradient background, noise overlay)
 - `src/components/resume/` - SmartResumePaper, HrValidationPanel, RecommendationCard
 - `src/components/cover-letter/` - CoverLetterDisplay, CoverLetterEvaluationPanel
 - `src/components/shared/` - GenerationOverlay, ProtectedRoute, RequireRole, common UI patterns
@@ -135,11 +137,21 @@ profile-builder/
 **Styling System**
 - Tailwind CSS v4 (CSS-first configuration)
 - CSS custom properties for theming (30+ color variables)
-- Dark/light mode with localStorage persistence
+- Dark/light mode with localStorage persistence (landing page always-dark)
 - Mobile-first responsive design (sm, md, lg, xl breakpoints)
 - Touch-friendly UI (44px minimum tap targets)
+- **Landing Page Design (Feb 2026):** Always-dark Luma-style premium aesthetic with indigo/purple/blue palette (#09090b background), radial gradient glow effects, SVG fractal noise overlay, glassmorphism cards with backdrop blur
 
 ### Recent Migrations & Updates
+
+**Landing & Auth Pages Visual Restyling (Feb 2026):**
+- Landing page with always-dark Luma-style premium aesthetic
+- Radial gradient glow background (indigo/purple/blue palette on #09090b)
+- SVG fractal noise overlay for texture
+- Glassmorphism styling on cards and header (backdrop-blur effects)
+- Auth pages (Login, Register) with matching dark gradient backgrounds and glass cards
+- No functional changes, no new npm packages, no API changes
+- New components: `landing-gradient-background.tsx`, `landing-noise-overlay.tsx`
 
 **UI Framework Migration (Feb 2026):**
 - From Ant Design → shadcn/ui + Tailwind CSS v4
@@ -148,7 +160,7 @@ profile-builder/
 - Navigation: Horizontal header → Sidebar with mobile hamburger
 - Notifications: antd message → Sonner toast
 - Theme: Dark-only → Dark/light toggle with persistence
-- File structure: Reorganized into layout, shared, ui, resume directories
+- File structure: Reorganized into layout, shared, ui, resume, landing directories
 
 **Smart Resume Enhancement (Feb 2026):**
 - Enhanced recommendation system with structured `RecommendationItem` objects

@@ -14,7 +14,7 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { title: 'Documents', url: '/', icon: FileText, minRole: ['BASIC', 'PREMIUM', 'ADMIN'] },
+  { title: 'Documents', url: '/documents', icon: FileText, minRole: ['BASIC', 'PREMIUM', 'ADMIN'] },
   { title: 'Upload', url: '/upload', icon: Upload, minRole: ['BASIC', 'PREMIUM', 'ADMIN'] },
   { title: 'Smart Resume', url: '/smart-resume', icon: Rocket, minRole: ['BASIC', 'PREMIUM', 'ADMIN'] },
   { title: 'Cover Letter', url: '/cover-letter', icon: Mail, minRole: ['PREMIUM', 'ADMIN'] },
@@ -42,7 +42,7 @@ export function AppSidebar() {
         {visibleItems.map((item) => {
           const isActive =
             location.pathname === item.url ||
-            (item.url !== '/' && location.pathname.startsWith(item.url))
+            location.pathname.startsWith(item.url + '/')
           return (
             <NavLink
               key={item.url}

@@ -14,6 +14,7 @@ import SmartResumeResultPage from './pages/SmartResumeResultPage'
 import CoverLetterSetupPage from './pages/CoverLetterSetupPage'
 import CoverLetterResultPage from './pages/CoverLetterResultPage'
 import AdminUserManagementPage from './pages/AdminUserManagementPage'
+import LandingPage from './pages/LandingPage'
 
 export default function App() {
   return (
@@ -22,6 +23,7 @@ export default function App() {
         <AuthProvider>
           <Routes>
             {/* Public routes */}
+            <Route path="/" element={<LandingPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
 
@@ -32,7 +34,7 @@ export default function App() {
                 <ProtectedRoute>
                   <AppLayout>
                     <Routes>
-                      <Route path="/" element={<DocumentListPage />} />
+                      <Route path="/documents" element={<DocumentListPage />} />
                       <Route path="/upload" element={<UploadPage />} />
                       <Route path="/smart-resume" element={<SmartResumeSetupPage />} />
                       <Route path="/smart-resume/:smartResumeId" element={<SmartResumeResultPage />} />
