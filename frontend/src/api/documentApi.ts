@@ -20,3 +20,7 @@ export async function uploadDocument(file: File, documentType: DocumentType): Pr
     const { data } = await axiosInstance.post<DocumentUploadResponse>('/documents/upload', formData);
     return data;
 }
+
+export async function deleteDocument(id: number): Promise<void> {
+    await axiosInstance.delete(`/documents/${id}`);
+}

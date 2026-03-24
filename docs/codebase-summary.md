@@ -1,6 +1,6 @@
 # Codebase Summary
 
-**Generated:** 2026-02-21
+**Generated:** 2026-02-28
 **Repository:** Profile Builder (Full-stack AI Resume Platform)
 **Status:** Active Development
 
@@ -19,17 +19,30 @@ profile-builder/
 │   ├── src/
 │   │   ├── components/                # Component library
 │   │   │   ├── ui/                    # shadcn/ui components
-│   │   │   ├── layout/                # AppLayout, Sidebar, Theme
+│   │   │   ├── layout/                # AppLayout, Sidebar (Theme removed)
 │   │   │   ├── resume/                # Resume-specific components
+│   │   │   ├── cover-letter/          # Cover letter with document section
+│   │   │   ├── job-crawler/           # Job crawler components
+│   │   │   │   ├── job-search-form.tsx
+│   │   │   │   ├── job-search-list.tsx
+│   │   │   │   ├── telegram-setup-section.tsx
+│   │   │   │   ├── crawl-schedule-section.tsx
+│   │   │   │   └── job-results-section.tsx
 │   │   │   └── shared/                # Shared components
-│   │   ├── pages/                     # Route components (8 pages)
+│   │   ├── pages/                     # Route components (9 pages)
 │   │   ├── api/                       # API client helpers
+│   │   │   ├── job-crawler-api.ts     # Job crawler API client
+│   │   │   └── resumeApi.ts           # Resume/document API
+│   │   ├── lib/                       # Utility functions
+│   │   │   └── format-est-timestamp.ts # EST timestamp formatter
 │   │   ├── types/                     # TypeScript interfaces
+│   │   │   ├── job-crawler.ts         # Job crawler types
+│   │   │   ├── smart-resume.ts        # Resume types
+│   │   │   └── document.ts            # Document types
 │   │   ├── styles/                    # Global CSS + templates
 │   │   ├── App.tsx                    # Root component
 │   │   └── main.tsx                   # Entry point
 │   ├── Dockerfile                     # Multi-stage build (frontend)
-│   ├── nginx-ecs.conf                 # nginx config for ECS (path-based routing)
 │   ├── package.json                   # Dependencies
 │   └── vite.config.ts                 # Build configuration
 │
@@ -38,34 +51,68 @@ profile-builder/
 │   │   ├── ai/                        # AI integration
 │   │   │   └── agent/                 # Specialized AI agents
 │   │   ├── config/                    # Spring configuration
+│   │   │   ├── AsyncConfig.java       # Async task executor (NEW)
+│   │   │   └── RestTemplateConfig.java # Rest client config (NEW)
 │   │   ├── controller/                # REST endpoints
-│   │   ├── service/                   # Business logic (includes S3Integration)
+│   │   │   ├── JobSearchController.java (NEW)
+│   │   │   ├── TelegramController.java (NEW)
+│   │   │   ├── CrawlScheduleController.java (NEW)
+│   │   │   └── CrawledJobController.java (NEW)
+│   │   ├── service/                   # Business logic
+│   │   │   ├── JobSearchService.java (NEW)
+│   │   │   ├── CrawledJobService.java (NEW)
+│   │   │   ├── TelegramConfigService.java (NEW)
+│   │   │   ├── CrawlScheduleService.java (NEW)
+│   │   │   ├── TelegramNotificationService.java (NEW)
+│   │   │   ├── CrawlerClientService.java (NEW)
+│   │   │   ├── CrawlOrchestrationService.java (NEW)
+│   │   │   └── CrawlSchedulerService.java (NEW)
 │   │   ├── model/                     # Entities, DTOs, Enums
+│   │   │   ├── entity/
+│   │   │   │   ├── JobSearch.java (NEW)
+│   │   │   │   ├── CrawledJob.java (NEW)
+│   │   │   │   ├── TelegramConfig.java (NEW)
+│   │   │   │   └── CrawlSchedule.java (NEW)
+│   │   │   ├── dto/
+│   │   │   │   ├── JobSearchRequest.java (NEW)
+│   │   │   │   ├── JobSearchResponse.java (NEW)
+│   │   │   │   ├── CrawledJobResponse.java (NEW)
+│   │   │   │   ├── TelegramConfigRequest.java (NEW)
+│   │   │   │   ├── TelegramConfigResponse.java (NEW)
+│   │   │   │   ├── CrawlerResponse.java (NEW)
+│   │   │   │   └── CrawlScheduleRequest.java (NEW)
+│   │   │   └── enum/
+│   │   │       └── SourceSite.java (NEW: LINKEDIN, INDEED, GITHUB)
 │   │   ├── repository/                # JPA repositories
+│   │   │   ├── JobSearchRepository.java (NEW)
+│   │   │   ├── CrawledJobRepository.java (NEW)
+│   │   │   ├── TelegramConfigRepository.java (NEW)
+│   │   │   └── CrawlScheduleRepository.java (NEW)
 │   │   ├── exception/                 # Custom exceptions
-│   │   └── util/                      # Utility classes (FileValidationUtil)
+│   │   ├── util/                      # Utility classes
+│   │   │   └── HashUtil.java (NEW: for URL hash generation)
+│   │   └── security/                  # Security & auth
 │   ├── src/main/resources/
-│   │   ├── application.yml            # Configuration
+│   │   ├── application.yml            # Configuration (updated with crawler settings)
 │   │   ├── db/migrations/             # Flyway migrations
 │   │   └── prompts/                   # AI prompts
 │   ├── src/test/java/                 # Unit tests
 │   ├── pom.xml                        # Maven dependencies
 │   └── Dockerfile                     # Multi-stage build (backend)
 │
-├── infra/                             # Infrastructure as Code (Terraform) (NEW)
-│   ├── main.tf                        # Root module orchestration
-│   ├── variables.tf                   # Input variables
-│   ├── outputs.tf                     # Output values
-│   ├── providers.tf                   # AWS provider config
-│   ├── backend.tf                     # Terraform state management
-│   └── modules/                       # Reusable infrastructure modules
-│       ├── vpc/                       # VPC, subnets, security groups
-│       ├── ecr/                       # Elastic Container Registry
-│       ├── rds/                       # PostgreSQL database
-│       ├── s3/                        # Document storage (S3 buckets)
-│       ├── secrets/                   # SSM Parameter Store + KMS encryption
-│       ├── alb/                       # Application Load Balancer
-│       └── ecs/                       # ECS Fargate services
+├── crawler/                           # Node.js Crawler Microservice (NEW)
+│   ├── src/
+│   │   ├── scrapers/                  # Scraper implementations
+│   │   │   ├── linkedin-scraper.js
+│   │   │   ├── indeed-scraper.js
+│   │   │   └── github-scraper.js
+│   │   ├── server.js                  # Express server
+│   │   └── utils/
+│   ├── Dockerfile                     # Multi-stage (Playwright base image)
+│   ├── package.json                   # Dependencies (playwright, express, stealth-plugin)
+│   └── .dockerignore
+│
+├── infra/                             # Infrastructure as Code (Terraform) [ARCHIVED - AWS removed March 2026]
 │
 ├── docs/                              # Documentation (NEW)
 │   ├── project-overview-pdr.md        # Project overview & requirements
@@ -81,8 +128,7 @@ profile-builder/
 │   └── 260220-2205-resume-generation-rewrite/
 │       └── ...
 │
-├── .github/workflows/                 # GitHub Actions CI/CD
-│   └── deploy-ecs.yml                 # Auto-deploy to ECS (OIDC auth)
+├── .github/workflows/                 # GitHub Actions CI/CD (deploy removed)
 ├── docker-compose.yml                 # Local dev environment
 ├── .gitignore                         # Updated with Terraform entries
 ├── .repomixignore                     # Files excluded from repomix
@@ -108,24 +154,25 @@ profile-builder/
 ### Key Features Implemented
 
 **Pages (9 total)**
-1. LandingPage - Public marketing page with always-dark Luma aesthetic, gradient glow backgrounds, glassmorphism cards, SVG noise overlay
-2. LoginPage - User login with email/password (dark gradient background, glass card styling)
-3. RegisterPage - User registration with email/password (dark gradient background, glass card styling)
-4. DocumentListPage - Browse uploaded documents
-5. UploadPage - Upload resume documents
-6. SmartResumeSetupPage - AI resume setup
-7. SmartResumeResultPage - AI-generated resume display
-8. CoverLetterSetupPage - 3-step cover letter generation (JD upload, resume select, master cover letter select)
-9. CoverLetterResultPage - Generated cover letter display with on-demand evaluation
-10. AdminUserManagementPage - (ADMIN only) User management with role updates
+1. LandingPage - Public marketing page (light-only, soft gradient design)
+2. LoginPage - User login with email/password (light styling)
+3. RegisterPage - User registration with email/password (light styling)
+4. DocumentListPage - Browse uploaded documents with delete action
+5. SmartResumeSetupPage - AI resume setup with inline document upload/delete
+6. SmartResumeResultPage - AI-generated resume display
+7. CoverLetterSetupPage - 3-step cover letter with bordered sections, paste support
+8. CoverLetterResultPage - Generated cover letter display with on-demand evaluation
+9. JobCrawlerPage - Job search automation with Telegram notifications (PREMIUM+ only, 4 tabs)
 
 **Component Organization**
-- `src/components/ui/` - 14 shadcn/ui primitive components
-- `src/components/layout/` - AppLayout, AppSidebar, ThemeProvider, ThemeToggle
-- `src/components/landing/` - Landing page sections (header, hero, features, how-it-works, stats, CTA, footer) + design systems (gradient background, noise overlay)
+- `src/components/ui/` - 15 shadcn/ui primitive components (added AlertDialog)
+- `src/components/layout/` - AppLayout, AppSidebar (ThemeProvider/ThemeToggle removed)
+- `src/components/landing/` - Landing page sections (light-only design, no noise overlay)
 - `src/components/resume/` - SmartResumePaper, HrValidationPanel, RecommendationCard
-- `src/components/cover-letter/` - CoverLetterDisplay, CoverLetterEvaluationPanel
-- `src/components/shared/` - GenerationOverlay, ProtectedRoute, RequireRole, common UI patterns
+- `src/components/cover-letter/` - CoverLetterDisplay, CoverLetterEvaluationPanel, DocumentSection
+- `src/components/job-crawler/` - JobSearchForm, JobSearchList, TelegramSetupSection, CrawlScheduleSection, JobResultsSection
+- `src/components/auth/` - ProtectedRoute, RequireRole
+- `src/components/shared/` - GenerationOverlay, common UI patterns
 
 **Auth Context** (NEW)
 - `src/contexts/auth-context.tsx` - AuthProvider context with token state management
@@ -136,22 +183,41 @@ profile-builder/
 
 **Styling System**
 - Tailwind CSS v4 (CSS-first configuration)
-- CSS custom properties for theming (30+ color variables)
-- Dark/light mode with localStorage persistence (landing page always-dark)
+- CSS custom properties for light-only theme
 - Mobile-first responsive design (sm, md, lg, xl breakpoints)
 - Touch-friendly UI (44px minimum tap targets)
-- **Landing Page Design (Feb 2026):** Always-dark Luma-style premium aesthetic with indigo/purple/blue palette (#09090b background), radial gradient glow effects, SVG fractal noise overlay, glassmorphism cards with backdrop blur
+- **Landing Page Design (Feb 2026):** Light-only soft gradient aesthetic with pastel indigo/purple palette
 
-### Recent Migrations & Updates
+### Recent UI Enhancements (Feb 2026)
 
-**Landing & Auth Pages Visual Restyling (Feb 2026):**
-- Landing page with always-dark Luma-style premium aesthetic
-- Radial gradient glow background (indigo/purple/blue palette on #09090b)
-- SVG fractal noise overlay for texture
-- Glassmorphism styling on cards and header (backdrop-blur effects)
-- Auth pages (Login, Register) with matching dark gradient backgrounds and glass cards
-- No functional changes, no new npm packages, no API changes
-- New components: `landing-gradient-background.tsx`, `landing-noise-overlay.tsx`
+**Dark Mode Removal & Light Theme:**
+- Landing page redesigned with light-only soft gradient aesthetic (pastel indigo/purple)
+- Auth pages (Login, Register) now light-only
+- Removed: ThemeProvider, ThemeToggle, dark mode CSS, landing-noise-overlay.tsx
+- All pages now light-only (no theme toggle)
+
+**Telegram Notifications Enhanced:**
+- Job messages now include source site emoji (LinkedIn/Indeed/GitHub)
+- Date posted timestamp included in notifications
+
+**Session Token Updates:**
+- Refresh token changed from 7 days to 24 hours
+- Access token remains 15 minutes
+
+**Document Management:**
+- New DELETE /api/documents/{id} endpoint
+- Frontend deleteDocument() API function with AlertDialog confirmation
+- Delete buttons on DocumentListPage, SmartResumeSetupPage, CoverLetterSetupPage
+
+**UI Component Improvements:**
+- New AlertDialog component for confirmations
+- Clipboard paste support (Cmd+V) for image uploads via FileUploadDropzone
+- EST timestamp formatting via shared formatEstTimestamp() utility
+- Inline resume upload in SmartResumeSetupPage and CoverLetterSetupPage
+- DocumentSection component with bordered step separation on CoverLetterSetupPage
+
+**Page Removals:**
+- UploadPage deleted (upload functionality moved inline to SmartResumeSetupPage, CoverLetterSetupPage)
 
 **UI Framework Migration (Feb 2026):**
 - From Ant Design → shadcn/ui + Tailwind CSS v4
@@ -219,6 +285,27 @@ profile-builder/
 - GET /api/cover-letter/{id} - Retrieve generated cover letter
 - POST /api/cover-letter/{id}/evaluate - Evaluate cover letter quality
 
+**JobSearchController** (NEW - Job Crawler Management)
+- POST /api/job-searches - Create job search (@PreAuthorize PREMIUM/ADMIN)
+- GET /api/job-searches - List user's searches (paginated)
+- PUT /api/job-searches/{id} - Update search criteria
+- DELETE /api/job-searches/{id} - Delete search
+
+**TelegramController** (NEW - Telegram Integration)
+- POST /api/telegram - Add Telegram config (chatId)
+- GET /api/telegram - Get current config
+- POST /api/telegram/verify - Send test message to verify chat_id
+- DELETE /api/telegram - Remove Telegram integration
+
+**CrawlScheduleController** (NEW - Schedule Configuration)
+- GET /api/crawl-schedule - Get schedule config
+- PUT /api/crawl-schedule - Update interval and enable/disable
+
+**CrawledJobController** (NEW - Job Results)
+- GET /api/crawled-jobs - List jobs (paginated, user-scoped)
+- POST /api/crawled-jobs/crawl-now - Trigger immediate crawl
+- DELETE /api/crawled-jobs/{id} - Delete individual job result
+
 ### Service Layer
 
 **Authentication & Authorization** (NEW)
@@ -239,6 +326,16 @@ profile-builder/
 - **CoverLetterOrchestrationService** - Orchestrates company research → cover letter generation pipeline
 - **CoverLetterGenerationService** - Manages persistence, evaluation, and retrieval of cover letters
 
+**Job Crawler Services (NEW)**
+- **JobSearchService** - Manage search criteria (create, update, delete, enable/disable)
+- **CrawledJobService** - Manage job results (save, delete, deduplicate by URL hash)
+- **TelegramConfigService** - Telegram integration (add, verify, enable/disable)
+- **CrawlScheduleService** - Schedule configuration (get, update intervals)
+- **TelegramNotificationService** - Send job notifications to Telegram
+- **CrawlerClientService** - HTTP client to Node.js crawler (port 3001)
+- **CrawlOrchestrationService** - Main orchestrator (searches → crawler → save jobs → notify)
+- **CrawlSchedulerService** - Scheduled task executor (@Scheduled, default 6-hour interval)
+
 ### AI Agent Architecture
 
 **Specialized AI Agents** (Located in `ai/agent/`)
@@ -256,12 +353,16 @@ profile-builder/
 
 ### Database Schema
 
-**Tables (5 main)**
+**Tables (9 main)**
 1. **documents** - Uploaded files metadata
 2. **smart_generated_resumes** - AI-generated resumes
 3. **smart_hr_validations** - HR validation feedback
 4. **pb_generated_cover_letters** - Generated cover letters with company research
 5. **pb_cover_letter_evaluations** - Cover letter evaluation results
+6. **pb_job_searches** - User-configured job search criteria (NEW)
+7. **pb_crawled_jobs** - Scraped job results with deduplication hash (NEW)
+8. **pb_telegram_configs** - Telegram bot settings per user (NEW)
+9. **pb_crawl_schedules** - Crawler schedule configuration (NEW)
 
 ### Configuration
 - `application.yml` - Spring Boot configuration
@@ -396,6 +497,28 @@ docker-compose up  # PostgreSQL + pgvector
 3. **Smart Resume System** - AI orchestration, HR validation, company research
 4. **Responsive Design** - Mobile-first Tailwind CSS implementation
 5. **Cover Letter Generator** - Company research agent, cover letter generation, evaluation pipeline
+6. **Job Crawler with Telegram Notifications** - Multi-source job scraper, scheduled crawling, Telegram alerts (NEW)
+
+### Job Crawler Feature (NEW - Feb 2026)
+
+**Architecture:**
+- **Microservice Design:** Separate Node.js crawler service (port 3001) using Playwright + stealth plugin
+- **Multi-Source Scraping:** LinkedIn, Indeed, GitHub job listings
+- **Scheduled Execution:** Configurable intervals (default 6 hours) with CrawlSchedulerService
+- **Deduplication:** MD5 hashing of source URLs to prevent duplicate saves
+- **Real-Time Notifications:** Telegram bot integration for instant job alerts
+- **User Isolation:** All data scoped by user_id with role-based access (@PreAuthorize PREMIUM/ADMIN)
+
+**Components:**
+- Backend: 4 entities, 4 repositories, 8 services, 4 controllers, 2 config classes
+- Frontend: JobCrawlerPage with 4 tabs, 5 specialized components, API client, TypeScript types
+- Microservice: Express server with 3 scraper implementations, health endpoint
+
+**Integration Points:**
+- Frontend nav: Sidebar item "Job Crawler" (PREMIUM+ only)
+- Backend APIs: 12 new REST endpoints with @PreAuthorize role checks
+- Database: 4 new tables with proper indexes and user scoping
+- Configuration: application.yml updated with crawler and Telegram settings
 
 ### Current Focus
 - Code refinement and optimization
@@ -408,6 +531,7 @@ docker-compose up  # PostgreSQL + pgvector
 - Career path recommendations
 - Interview preparation features
 - Portfolio integration
+- Advanced job filtering and matching
 
 ## Key Files to Review
 
@@ -470,26 +594,11 @@ docker-compose up    # Start local PostgreSQL
 - Environment-based configuration (dev, test, prod)
 - Database migrations automated (Flyway)
 
-### Production (AWS ECS Fargate)
-- **Infrastructure as Code (Terraform):** Complete IaC in `infra/` directory
-  - VPC with multi-AZ public/private subnets
-  - ECR repositories for frontend and backend images
-  - RDS PostgreSQL 16 (db.t4g.micro, private subnet)
-  - S3 buckets with versioning and KMS encryption
-  - ALB with path-based routing (/api/* → backend, /* → frontend)
-  - ECS Fargate Spot for cost optimization
-  - SSM Parameter Store + KMS for secrets management
-
-- **CI/CD Pipeline (GitHub Actions):** Auto-deploy to ECS staging
-  - OIDC authentication (no stored AWS keys)
-  - Build & push Docker images to ECR on main push
-  - Update ECS service with new images
-  - Automated deployment to staging environment
-
-- **Frontend Deployment:** nginx-ecs.conf for path-based routing, VITE_API_HOST build arg
-- **Backend Deployment:** Spring Boot JAR in Docker, environment variables injected from Secrets Manager
-- **Database:** Automated migrations via Flyway on ECS startup
-- **File Storage:** S3 integration with fallback to local filesystem support
+### Production
+- AWS infrastructure removed (March 2026) — all ECS, RDS, S3, ALB, ECR, SSM resources torn down
+- `infra/` directory kept for historical reference (Terraform modules)
+- CI/CD deploy pipeline removed; Dockerfiles still available for future platform deployment
+- File storage: local filesystem only (S3 SDK removed from backend)
 
 ## Future Considerations
 

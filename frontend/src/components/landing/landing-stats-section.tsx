@@ -33,7 +33,7 @@ const stats: StatItem[] = [
 // Stats section — key platform highlights with glass icon circles
 export function LandingStatsSection() {
   return (
-    <section className="relative z-20 w-full border-t border-b border-white/5 px-4 py-16">
+    <section className="relative z-20 w-full border-t border-b border-gray-200/50 px-4 py-16">
       <div className="mx-auto max-w-5xl">
         <div className="grid grid-cols-2 gap-8 md:grid-cols-4">
           {stats.map((stat) => (
@@ -41,11 +41,11 @@ export function LandingStatsSection() {
               key={stat.label}
               className="flex flex-col items-center gap-2 text-center"
             >
-              <div className="flex size-12 items-center justify-center rounded-full border border-white/10 bg-white/5">
+              <div className="flex size-12 items-center justify-center rounded-full border border-indigo-200 bg-indigo-50">
                 {stat.icon}
               </div>
-              <span className="text-3xl font-bold text-white">{stat.value}</span>
-              <span className="text-sm text-zinc-500">{stat.label}</span>
+              <span className="text-3xl font-bold text-gray-900">{stat.value}</span>
+              <span className="text-sm text-gray-600">{stat.label}</span>
             </div>
           ))}
         </div>

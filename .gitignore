@@ -33,7 +33,7 @@ backend/logs/
 backend/src/main/resources/uploads/
 
 # ── Frontend (Node/React) ─────────────────────────────────
-frontend/node_modules/
+**/node_modules/
 frontend/dist/
 frontend/build/
 frontend/.vite/

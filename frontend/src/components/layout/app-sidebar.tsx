@@ -1,7 +1,6 @@
 import { NavLink, useLocation } from 'react-router-dom'
-import { FileText, Upload, Rocket, Mail, Users, LogOut } from 'lucide-react'
+import { FileText, Rocket, Mail, Users, LogOut, Search } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { ThemeToggle } from '@/components/layout/theme-toggle'
 import { useAuth } from '@/contexts/use-auth'
 import { Button } from '@/components/ui/button'
 import type { UserRole } from '@/types/auth'
@@ -15,9 +14,9 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { title: 'Documents', url: '/documents', icon: FileText, minRole: ['BASIC', 'PREMIUM', 'ADMIN'] },
-  { title: 'Upload', url: '/upload', icon: Upload, minRole: ['BASIC', 'PREMIUM', 'ADMIN'] },
   { title: 'Smart Resume', url: '/smart-resume', icon: Rocket, minRole: ['BASIC', 'PREMIUM', 'ADMIN'] },
   { title: 'Cover Letter', url: '/cover-letter', icon: Mail, minRole: ['PREMIUM', 'ADMIN'] },
+  { title: 'Job Crawler', url: '/job-crawler', icon: Search, minRole: ['PREMIUM', 'ADMIN'] },
   { title: 'Admin Panel', url: '/admin/users', icon: Users, minRole: ['ADMIN'] },
 ]
 
@@ -61,7 +60,7 @@ export function AppSidebar() {
         })}
       </nav>
 
-      {/* Footer — user info + theme toggle + logout */}
+      {/* Footer — user info + logout */}
       <div className="border-t border-sidebar-border p-3 space-y-2">
         {user && (
           <div className="px-3 py-1">
@@ -72,8 +71,7 @@ export function AppSidebar() {
             </span>
           </div>
         )}
-        <div className="flex items-center justify-between px-1">
-          <ThemeToggle />
+        <div className="flex items-center justify-end px-1">
           <Button
             variant="ghost"
             size="icon"

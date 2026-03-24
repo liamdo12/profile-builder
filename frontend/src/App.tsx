@@ -1,6 +1,5 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { Toaster } from 'sonner'
-import { ThemeProvider } from '@/components/layout/theme-provider'
 import { AuthProvider } from '@/contexts/auth-context'
 import { ProtectedRoute } from '@/components/auth/protected-route'
 import { RequireRole } from '@/components/auth/require-role'
@@ -8,17 +7,17 @@ import { AppLayout } from '@/components/layout/app-layout'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import DocumentListPage from './pages/DocumentListPage'
-import UploadPage from './pages/UploadPage'
 import SmartResumeSetupPage from './pages/SmartResumeSetupPage'
 import SmartResumeResultPage from './pages/SmartResumeResultPage'
 import CoverLetterSetupPage from './pages/CoverLetterSetupPage'
 import CoverLetterResultPage from './pages/CoverLetterResultPage'
 import AdminUserManagementPage from './pages/AdminUserManagementPage'
+import JobCrawlerPage from './pages/JobCrawlerPage'
 import LandingPage from './pages/LandingPage'
 
 export default function App() {
   return (
-    <ThemeProvider defaultTheme="dark" storageKey="profile-builder-theme">
+    <>
       <BrowserRouter>
         <AuthProvider>
           <Routes>
@@ -35,7 +34,6 @@ export default function App() {
                   <AppLayout>
                     <Routes>
                       <Route path="/documents" element={<DocumentListPage />} />
-                      <Route path="/upload" element={<UploadPage />} />
                       <Route path="/smart-resume" element={<SmartResumeSetupPage />} />
                       <Route path="/smart-resume/:smartResumeId" element={<SmartResumeResultPage />} />
 
@@ -53,6 +51,16 @@ export default function App() {
                         element={
                           <RequireRole allowed={['PREMIUM', 'ADMIN']}>
                             <CoverLetterResultPage />
+                          </RequireRole>
+                        }
+                      />
+
+                      {/* Premium + Admin only - Job Crawler */}
+                      <Route
+                        path="/job-crawler"
+                        element={
+                          <RequireRole allowed={['PREMIUM', 'ADMIN']}>
+                            <JobCrawlerPage />
                           </RequireRole>
                         }
                       />
@@ -75,6 +83,6 @@ export default function App() {
         </AuthProvider>
       </BrowserRouter>
       <Toaster richColors position="top-right" />
-    </ThemeProvider>
+    </>
   )
 }

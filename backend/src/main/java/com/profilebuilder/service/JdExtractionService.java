@@ -54,7 +54,7 @@ public class JdExtractionService {
     }
 
     /**
-     * Extract text from a file stored in S3 or local filesystem (PDF only for resumes).
+     * Extract text from a file stored on local filesystem (PDF only for resumes).
      */
     public String extractTextFromPath(String filePath) {
         try {

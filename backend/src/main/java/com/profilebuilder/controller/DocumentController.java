@@ -62,4 +62,16 @@ public class DocumentController {
         DocumentUploadResponse document = documentService.getDocumentById(id, user.getId());
         return ResponseEntity.ok(document);
     }
+
+    /**
+     * Delete a document by ID, scoped to the authenticated user.
+     */
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteDocument(
+            @PathVariable Long id,
+            @AuthenticationPrincipal User user) {
+
+        documentService.deleteDocument(id, user.getId());
+        return ResponseEntity.noContent().build();
+    }
 }

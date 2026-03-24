@@ -95,7 +95,7 @@ User (Frontend)
     │   ├─ Backend validates credentials
     │   ├─ Generates JWT tokens
     │   │   ├─ Access Token (15 min expiry)
-    │   │   └─ Refresh Token (7 days expiry)
+    │   │   └─ Refresh Token (24 hours expiry)
     │   └─ Returns AuthResponse
     │
     ├─ All subsequent API calls
@@ -380,6 +380,239 @@ Located in `src/components/shared/`:
 - suggestions (JSON array of strings)
 - created_at, updated_at
 
+### Job Crawler Tables (NEW)
+
+**pb_job_searches** (User Search Criteria)
+- id (PK)
+- user_id (FK → pb_users)
+- job_title (NOT NULL)
+- location
+- remote_only (BOOLEAN, default false)
+- date_posted_within_days (INTEGER, default 3)
+- enabled (BOOLEAN, default true)
+- created_at, updated_at
+- **Index:** user_id (for filtering by user)
+
+**pb_crawled_jobs** (Crawled Job Results)
+- id (PK)
+- user_id (FK → pb_users)
+- title (NOT NULL)
+- company (NOT NULL)
+- location
+- salary_info
+- date_posted (NOT NULL)
+- description (TEXT)
+- source_url (NOT NULL)
+- source_url_hash (VARCHAR, for deduplication)
+- source_site (ENUM: LINKEDIN, INDEED, GITHUB)
+- created_at
+- **Indexes:** user_id, source_url_hash, date_posted
+
+**pb_telegram_configs** (User's Telegram Settings)
+- id (PK)
+- user_id (FK → pb_users, UNIQUE)
+- chat_id (VARCHAR)
+- enabled (BOOLEAN, default false)
+- verified (BOOLEAN, default false)
+- created_at, updated_at
+
+**pb_crawl_schedules** (Crawler Schedule Configuration)
+- id (PK)
+- user_id (FK → pb_users, UNIQUE)
+- interval_hours (INTEGER, default 6)
+- enabled (BOOLEAN, default false)
+- last_crawl_at (TIMESTAMP)
+- next_crawl_at (TIMESTAMP)
+- created_at, updated_at
+
+## Job Crawler System Architecture (NEW)
+
+### Data Flow: Job Search & Crawling
+
+```
+User Creates Job Search
+    │
+    ▼
+Frontend: JobCrawlerPage (Searches Tab)
+    │
+    ├─ POST /api/job-searches (create search)
+    │
+    ▼
+Backend: JobSearchController.createSearch()
+    │
+    ├─ JobSearchService.createSearch()
+    │   ├─ Save to pb_job_searches table
+    │   ├─ Scoped by userId
+    │   └─ Enable/disable toggle
+    │
+    ▼
+CrawlSchedulerService (Scheduled Task)
+    │
+    ├─ Runs every interval (default 6 hours)
+    ├─ CrawlOrchestrationService.executeCrawl()
+    │   │
+    │   ├─ For each enabled JobSearch:
+    │   │   │
+    │   │   ├─ CrawlerClientService.requestCrawl()
+    │   │   │   ├─ HTTP POST to Node.js crawler (port 3001)
+    │   │   │   ├─ Pass: jobTitle, location, sourceSites
+    │   │   │   └─ Receive: CrawlerResponse with jobs
+    │   │   │
+    │   │   ├─ CrawledJobService.saveJobs()
+    │   │   │   ├─ Deduplicate by source_url_hash
+    │   │   │   ├─ Save to pb_crawled_jobs table
+    │   │   │   └─ Associate with user_id
+    │   │   │
+    │   │   └─ TelegramNotificationService.notifyIfEnabled()
+    │   │       ├─ Check user's TelegramConfig
+    │   │       ├─ Send Telegram message with job summary
+    │   │       └─ Log notification status
+    │   │
+    │   └─ Update CrawlSchedule (last_crawl_at, next_crawl_at)
+    │
+    ▼
+Manual Crawl (User-triggered)
+    │
+    └─ POST /api/crawled-jobs/crawl-now
+        └─ Immediately trigger crawl for this user
+```
+
+### Node.js Crawler Microservice
+
+Located in `crawler/` directory, runs on port 3001:
+
+**Stack:**
+- Express server
+- Playwright (browser automation)
+- Stealth plugin (anti-detection)
+- Parso (HTML parsing)
+
+**Scrapers Implemented:**
+- **LinkedIn:** Job title + company extraction, salary parsing
+- **Indeed:** Job details, company info, salary ranges
+- **GitHub:** Repository-based job listings
+
+**Endpoints:**
+- `POST /crawl` - Crawl jobs (input: jobTitle, location, sourceSites)
+- `GET /health` - Health check
+
+**Response Format:**
+```json
+{
+  "success": true,
+  "data": {
+    "jobs": [
+      {
+        "title": "Senior Engineer",
+        "company": "TechCorp",
+        "location": "San Francisco, CA",
+        "salaryInfo": "$150K-$180K",
+        "datePosted": "2 days ago",
+        "description": "...",
+        "sourceUrl": "https://linkedin.com/jobs/...",
+        "sourceSite": "LINKEDIN"
+      }
+    ]
+  }
+}
+```
+
+**Deployment:**
+- Docker container (Playwright base image)
+- Added to docker-compose.yml for local dev
+- Exposed on port 3001
+
+### REST API Endpoints (Job Crawler)
+
+All endpoints protected with `@PreAuthorize("hasAnyRole('PREMIUM','ADMIN')")`
+
+**Job Searches**
+- `POST /api/job-searches` - Create search (jobTitle, location, remoteOnly, datePostedWithinDays)
+- `GET /api/job-searches` - List user's searches (paginated)
+- `PUT /api/job-searches/{id}` - Update search criteria
+- `DELETE /api/job-searches/{id}` - Delete search
+
+**Telegram Configuration**
+- `POST /api/telegram` - Add Telegram config (chatId)
+- `GET /api/telegram` - Get current config
+- `POST /api/telegram/verify` - Send test message to verify chat_id
+- `DELETE /api/telegram` - Remove Telegram integration
+
+**Crawl Schedule**
+- `GET /api/crawl-schedule` - Get schedule config
+- `PUT /api/crawl-schedule` - Update interval and enable/disable
+
+**Crawled Jobs (Results)**
+- `GET /api/crawled-jobs` - List jobs (paginated, user-scoped)
+- `POST /api/crawled-jobs/crawl-now` - Trigger immediate crawl
+- `DELETE /api/crawled-jobs/{id}` - Delete individual job result
+
+### Service Layer (Job Crawler Services)
+
+**JobSearchService** - Manage search criteria
+- createSearch(userId, criteria)
+- updateSearch(searchId, criteria)
+- deleteSearch(searchId)
+- findByUserId(userId)
+- getEnabledSearches()
+
+**CrawledJobService** - Manage job results
+- saveJobs(userId, crawlerResponse)
+- deleteJob(jobId, userId)
+- findByUserId(userId, pageable)
+- deduplicateByHash(sourceUrlHash)
+
+**TelegramConfigService** - Telegram integration
+- saveConfig(userId, chatId)
+- getConfig(userId)
+- enableDisable(userId, enabled)
+- deleteConfig(userId)
+
+**CrawlerClientService** - HTTP client to Node.js crawler
+- requestCrawl(jobSearch) → CrawlerResponse
+- Timeout: 30 seconds
+- Retry: 1 attempt on failure
+
+**CrawlOrchestrationService** - Orchestrates entire crawl workflow
+- executeCrawl() - Main entry point for scheduled crawls
+- Handles: search retrieval → crawler client → job saving → notifications
+
+**CrawlSchedulerService** - Scheduled task executor
+- runs every `crawl.scheduler.interval-hours` (configurable, default 6)
+- Spring @Scheduled annotation
+- Triggers CrawlOrchestrationService.executeCrawl()
+
+**TelegramNotificationService** - Send job notifications
+- notifyNewJobs(userId, jobs)
+- Formats message with job summary
+- Uses Telegram Bot API
+
+### Frontend Job Crawler Components
+
+**JobCrawlerPage** (src/pages)
+- 4 tabs: Searches, Telegram, Schedule, Results
+- Uses Tabs UI component from shadcn/ui
+
+**Components** (src/components/job-crawler/)
+1. **JobSearchForm** - Create/edit search criteria form
+2. **JobSearchList** - List user's active searches with enable/disable toggles
+3. **TelegramSetupSection** - Add/verify/remove Telegram integration
+4. **CrawlScheduleSection** - Configure crawl interval
+5. **JobResultsSection** - Display paginated crawled jobs with delete action
+
+**API Client** (src/api/job-crawler-api.ts)
+- jobSearchApi (CRUD operations)
+- crawledJobApi (fetch, delete, trigger crawl)
+- telegramApi (config, verify, test)
+- scheduleApi (get, update)
+
+**Types** (src/types/job-crawler.ts)
+- JobSearch, JobSearchRequest
+- CrawledJob, PaginatedResponse<T>
+- TelegramConfig, TelegramConfigRequest
+- CrawlSchedule, CrawlScheduleRequest
+- SourceSite enum: LINKEDIN, INDEED, GITHUB
+
 ## AI Integration Architecture
 
 ### Multi-LLM Orchestration
@@ -533,13 +766,14 @@ useEffect(() => {
 ## Security Architecture
 
 ### Frontend Security
-- No sensitive data in localStorage (theme only)
+- No sensitive data in localStorage
 - HTTPS enforced in production
 - Input validation before API calls
 - XSS protection via React's built-in escaping
+- DOMPurify sanitization for HTML rendering
 
 ### Backend Security
-- **JWT Authentication:** Spring Security with JWT tokens (access 15min, refresh 7days)
+- **JWT Authentication:** Spring Security with JWT tokens (access 15min, refresh 24hours)
 - **Password Hashing:** bcrypt for secure password storage
 - **Data Isolation:** All queries scoped to authenticated user_id via SecurityContext
 - **Role-Based Access:** @PreAuthorize annotations enforce RBAC
@@ -560,58 +794,10 @@ docker-compose.yml
 └── Frontend dev server (Vite)
 ```
 
-### Production (AWS ECS Fargate Staging)
-```
-AWS Infrastructure
-├── VPC with public/private subnets (Multi-AZ)
-│
-├── Application Layer (ECS Fargate Spot)
-│   ├── Frontend
-│   │   ├── nginx (reverse proxy, path-based routing)
-│   │   ├── React 19 (Vite build)
-│   │   └── Configured via VITE_API_HOST, NGINX_CONF
-│   │
-│   └── Backend
-│       ├── Spring Boot 3 (Java 17)
-│       ├── ECS Task definition with computed environment
-│       └── Secrets from SSM Parameter Store via Secrets Manager
-│
-├── Load Balancer (ALB)
-│   ├── HTTP listener on port 80
-│   ├── Path-based routing:
-│   │   ├── /api/* → Backend ECS service
-│   │   └── /* → Frontend ECS service
-│   ├── Target groups for frontend & backend
-│   └── Health checks (ECS managed)
-│
-├── Database (RDS PostgreSQL 16)
-│   ├── Instance type: db.t4g.micro
-│   ├── Private subnet (no public access)
-│   ├── Automated backups (7 days retention)
-│   └── Multi-AZ failover enabled
-│
-├── File Storage (S3)
-│   ├── Document uploads (scoped by user_id)
-│   ├── Versioning enabled
-│   ├── Server-side encryption (KMS)
-│   └── Lifecycle policies for archived files
-│
-├── Secrets Management
-│   ├── SSM Parameter Store (encrypted with KMS)
-│   ├── Stores: DB credentials, API keys, JWT secret
-│   └── Auto-injected via ECS task definition
-│
-├── Container Registry (ECR)
-│   ├── Frontend image (nginx + React build)
-│   ├── Backend image (Spring Boot JAR)
-│   └── Auto-versioned on push
-│
-└── CI/CD Pipeline (GitHub Actions)
-    ├── OIDC authentication (no stored AWS keys)
-    ├── Build & push Docker images on main push
-    ├── Update ECS service with new images
-    └── Auto-deploy to staging environment
-```
+### Production
+- AWS infrastructure was removed (March 2026)
+- Project currently runs via local development only
+- Dockerfiles available for containerized deployment to any platform
 
 ## Scalability Considerations
 

@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Profile Builder frontend is a modern React 19 + TypeScript application using Vite for fast development and building. It features a responsive UI built with shadcn/ui components and Tailwind CSS v4, with a sidebar navigation layout and dark/light theme support.
+The Profile Builder frontend is a modern React 19 + TypeScript application using Vite for fast development and building. It features a responsive UI built with shadcn/ui components and Tailwind CSS v4, with a sidebar navigation layout and light-only theme.
 
 **Tech Stack:** React 19.2 | TypeScript 5.9 | Vite 7.3 | Tailwind CSS 4.2 | shadcn/ui | React Router 7.13
 
@@ -37,8 +37,9 @@ src/
 ### Components Directory (`src/components/`)
 
 #### UI Components (`components/ui/`)
-Shadcn/ui Radix-based primitives:
+Shadcn/ui Radix-based primitives (15 components):
 ```
+alert-dialog.tsx         # Alert dialog with confirmation
 button.tsx               # Reusable button component
 input.tsx                # Form input field
 card.tsx                 # Card container (Header, Content, Footer)
@@ -52,6 +53,7 @@ sheet.tsx                # Side panel / drawer
 dialog.tsx               # Modal dialog
 tooltip.tsx              # Hover tooltip
 separator.tsx            # Visual divider
+tabs.tsx                 # Tab navigation component
 ```
 
 **Usage Pattern:**
@@ -66,9 +68,7 @@ export function MyComponent() {
 #### Layout Components (`components/layout/`)
 ```
 app-layout.tsx           # Main page wrapper (sidebar + content area)
-app-sidebar.tsx          # Navigation sidebar with logo, menu, theme toggle
-theme-provider.tsx       # React Context for theme management
-theme-toggle.tsx         # Light/dark mode switch button
+app-sidebar.tsx          # Navigation sidebar with logo, menu
 ```
 
 **AppLayout Structure:**
@@ -129,6 +129,27 @@ const sanitizedHTML = DOMPurify.sanitize(htmlContent, {
 <div dangerouslySetInnerHTML={{ __html: sanitizedHTML }} />
 ```
 
+#### Landing Components (`components/landing/`)
+Public-facing landing page with premium dark aesthetic:
+- `landing-header.tsx` - Navigation header with glassmorphism styling
+- `landing-hero-section.tsx` - Hero section with gradient glow
+- `landing-features-section.tsx` - Feature showcase with glass cards
+- `landing-how-it-works-section.tsx` - Step-by-step instructions
+- `landing-stats-section.tsx` - Key metrics and achievements
+- `landing-cta-section.tsx` - Call-to-action section
+- `landing-footer.tsx` - Footer section
+- `landing-gradient-background.tsx` - Radial gradient glow background
+- `landing-noise-overlay.tsx` - SVG fractal noise texture
+
+**Design System:**
+```typescript
+// Always-dark Luma aesthetic
+Background: #09090b (near-black)
+Palette: Indigo/Purple/Blue gradients
+Gradients: Radial ellipse with rgba colors (120, 119, 198, 0.3), (59, 130, 246, 0.15), (139, 92, 246, 0.2)
+Effects: Glassmorphism (backdrop-blur), SVG noise overlay (opacity-3%)
+```
+
 #### Shared Components (`components/shared/`)
 Common UI patterns used across multiple pages:
 - Loading spinners
@@ -140,18 +161,19 @@ Common UI patterns used across multiple pages:
 
 Each page component represents a route in the application:
 
-1. **DocumentListPage.tsx**
-   - Route: `/`
-   - Display list of uploaded documents
-   - Quick actions (view, delete)
+1. **LandingPage.tsx**
+   - Route: `/` (public, no authentication required)
+   - Light-only soft gradient landing page
+   - Pastel indigo/purple color palette
 
-2. **UploadPage.tsx**
-   - Route: `/upload`
-   - File upload form with drag-and-drop
-   - File validation and progress
+2. **DocumentListPage.tsx**
+   - Route: `/documents` (authenticated)
+   - Display list of uploaded documents
+   - Delete action with confirmation dialog
 
 3. **SmartResumeSetupPage.tsx**
    - Route: `/smart-resume`
+   - Inline document upload/delete with paste support
    - Configuration form for AI generation
    - Select tone, style, target role
    - Start AI generation
@@ -243,19 +265,9 @@ globals.css                  # Global Tailwind setup (root level)
 
 ## Theming System
 
-### Theme Architecture
+### Light-Only Theme (No Dark Mode)
 
-**Provider Setup (App.tsx):**
-```typescript
-<ThemeProvider defaultTheme="dark" storageKey="profile-builder-theme">
-  <BrowserRouter>
-    <AppLayout>
-      {/* Routes */}
-    </AppLayout>
-  </BrowserRouter>
-  <Toaster />
-</ThemeProvider>
-```
+The application uses a light-only theme throughout. Dark mode support has been removed.
 
 **CSS Variables (globals.css):**
 ```css
@@ -263,39 +275,15 @@ globals.css                  # Global Tailwind setup (root level)
   --color-background: hsl(0 0% 100%);
   --color-foreground: hsl(222.2 84% 4.9%);
   --color-primary: hsl(217 91% 60%);
-  /* ... more colors ... */
-}
-
-.dark {
-  --color-background: hsl(222.2 84% 4.9%);
-  --color-foreground: hsl(210 40% 98%);
-  /* ... dark overrides ... */
+  /* ... light mode colors only ... */
 }
 ```
 
 **Usage in Components:**
 ```typescript
-// Option 1: Tailwind classes (auto-switches with theme)
+// Tailwind classes work directly (light mode only)
 <div className="bg-background text-foreground">Content</div>
-
-// Option 2: CSS variables
-<div className="bg-[var(--color-background)]">Content</div>
-
-// Option 3: Using clsx for conditionals
-<div className={clsx(
-  'bg-background',
-  isDark && 'dark:bg-slate-950'
-)}>
-  Content
-</div>
 ```
-
-### Theme Toggle
-Located in `components/layout/theme-toggle.tsx`:
-- Toggle button in sidebar header
-- Reads from `useTheme()` hook
-- Persists to localStorage
-- Automatically applies `.dark` class to document root
 
 ## Styling Approach
 
@@ -498,12 +486,19 @@ export function ResumeForm({ onSubmit }: { onSubmit: (data: FormData) => Promise
 
 ### Route Configuration (App.tsx)
 
+Note: UploadPage has been removed. Upload functionality is now inline in SmartResumeSetupPage and CoverLetterSetupPage.
+
 ```typescript
 <Routes>
-  <Route path="/" element={<DocumentListPage />} />
-  <Route path="/upload" element={<UploadPage />} />
+  <Route path="/" element={<LandingPage />} />
+  <Route path="/login" element={<LoginPage />} />
+  <Route path="/register" element={<RegisterPage />} />
+  <Route path="/documents" element={<DocumentListPage />} />
   <Route path="/smart-resume" element={<SmartResumeSetupPage />} />
   <Route path="/smart-resume/:smartResumeId" element={<SmartResumeResultPage />} />
+  <Route path="/cover-letter" element={<CoverLetterSetupPage />} />
+  <Route path="/cover-letter/:coverletterId" element={<CoverLetterResultPage />} />
+  <Route path="/job-crawler" element={<JobCrawlerPage />} />
 </Routes>
 ```
 
@@ -749,8 +744,8 @@ npm run type-check  # Full TypeScript check
 
 ### Styling Issues
 - Check Tailwind class names
-- Verify dark mode class is applied to HTML element
-- Check CSS variable names in globals.css
+- Verify CSS variable names in globals.css
+- Note: Dark mode is removed, all pages use light theme only
 
 ## Resources
 

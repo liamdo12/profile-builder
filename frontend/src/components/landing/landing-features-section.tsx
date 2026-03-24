@@ -46,10 +46,10 @@ export function LandingFeaturesSection() {
       <div className="mx-auto max-w-6xl">
         {/* Section heading */}
         <div className="mb-12 text-center">
-          <h2 className="mb-3 text-3xl font-bold tracking-tight text-white sm:text-4xl">
+          <h2 className="mb-3 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
             Everything You Need
           </h2>
-          <p className="text-zinc-400">
+          <p className="text-gray-600">
             Professional tools powered by cutting-edge AI technology
           </p>
         </div>
@@ -57,13 +57,13 @@ export function LandingFeaturesSection() {
         {/* 4-column responsive grid */}
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
           {features.map((feature) => (
-            <div key={feature.title} className="flex flex-col rounded-xl border border-white/10 bg-white/5 p-6 backdrop-blur-sm transition-colors hover:bg-white/[0.08]">
-              <div className="mb-4 flex size-12 items-center justify-center rounded-lg bg-indigo-500/10">
+            <div key={feature.title} className="flex flex-col rounded-xl border border-gray-200/50 bg-white/80 p-6 backdrop-blur-sm shadow-sm transition-colors hover:bg-white/90 hover:shadow-md">
+              <div className="mb-4 flex size-12 items-center justify-center rounded-lg bg-indigo-50">
                 {feature.icon}
               </div>
-              <h3 className="mb-1 text-lg font-semibold text-white">{feature.title}</h3>
-              <p className="mb-3 text-sm text-zinc-500">{feature.description}</p>
-              <p className="text-sm text-zinc-400">{feature.detail}</p>
+              <h3 className="mb-1 text-lg font-semibold text-gray-900">{feature.title}</h3>
+              <p className="mb-3 text-sm text-indigo-600">{feature.description}</p>
+              <p className="text-sm text-gray-600">{feature.detail}</p>
             </div>
           ))}
         </div>

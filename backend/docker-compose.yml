@@ -42,5 +42,32 @@ services:
       postgres:
         condition: service_healthy
 
+  # ── Playwright Crawler Microservice ──────────────────────────
+  crawler:
+    build:
+      context: ../crawler
+      dockerfile: Dockerfile
+    container_name: pb-crawler
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: 3001
+      MAX_RESULTS_PER_SOURCE: ${CRAWLER_MAX_RESULTS:-20}
+      REQUEST_TIMEOUT_MS: ${CRAWLER_TIMEOUT_MS:-120000}
+      MIN_DELAY_MS: ${CRAWLER_MIN_DELAY_MS:-1000}
+      MAX_DELAY_MS: ${CRAWLER_MAX_DELAY_MS:-3000}
+      MAX_RETRIES: ${CRAWLER_MAX_RETRIES:-3}
+      PROXY_URL: ${PROXY_URL:-}
+      PLAYWRIGHT_HEADLESS: "true"
+    ipc: host
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3001/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
 volumes:
   postgres_data:

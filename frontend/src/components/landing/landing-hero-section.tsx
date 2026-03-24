@@ -19,21 +19,21 @@ export function LandingHeroSection() {
   return (
     <section className="relative z-20 flex min-h-[70vh] w-full flex-col items-center justify-center px-4 py-20 text-center">
       {/* Badge */}
-      <div className="mb-6 flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-1.5 text-sm text-zinc-300">
-        <Sparkles className="size-4 text-indigo-400" />
+      <div className="mb-6 flex items-center gap-2 rounded-full border border-indigo-200 bg-indigo-50 px-4 py-1.5 text-sm text-indigo-700">
+        <Sparkles className="size-4 text-indigo-500" />
         <span>Powered by Claude, GPT-4, and Gemini</span>
       </div>
 
       {/* Glow behind heading */}
-      <div className="absolute left-1/2 top-1/3 -z-10 h-64 w-96 -translate-x-1/2 rounded-full bg-indigo-500/20 blur-[100px]" />
+      <div className="absolute left-1/2 top-1/3 -z-10 h-64 w-96 -translate-x-1/2 rounded-full bg-indigo-200/40 blur-[100px]" />
 
       {/* Heading */}
-      <h1 className="mb-4 max-w-3xl text-4xl font-bold tracking-tight text-white sm:text-5xl lg:text-6xl">
+      <h1 className="mb-4 max-w-3xl text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl lg:text-6xl">
         AI-Powered Resume Builder
       </h1>
 
       {/* Subheading */}
-      <p className="mb-10 max-w-2xl text-lg text-zinc-400 sm:text-xl">
+      <p className="mb-10 max-w-2xl text-lg text-gray-600 sm:text-xl">
         Powered by Claude, GPT-4, and Gemini — create professional, ATS-friendly resumes in minutes
       </p>
 
@@ -46,7 +46,7 @@ export function LandingHeroSection() {
           </Link>
         </Button>
 
-        <Button size="lg" variant="outline" className="border-white/20 text-zinc-300 hover:bg-white/5 hover:text-white" onClick={handleLearnMore}>
+        <Button size="lg" variant="outline" className="border-gray-300 text-gray-700 hover:bg-gray-50 hover:text-gray-900" onClick={handleLearnMore}>
           Learn More
         </Button>
       </div>

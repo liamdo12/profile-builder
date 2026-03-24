@@ -35,14 +35,14 @@ const steps: Step[] = [
 // How-it-works section — 3-step process overview with numbered badges
 export function LandingHowItWorksSection() {
   return (
-    <section className="relative z-20 w-full border-t border-b border-white/5 px-4 py-20">
+    <section className="relative z-20 w-full border-t border-b border-gray-200/50 px-4 py-20">
       <div className="mx-auto max-w-5xl">
         {/* Section heading */}
         <div className="mb-12 text-center">
-          <h2 className="mb-3 text-3xl font-bold tracking-tight text-white sm:text-4xl">
+          <h2 className="mb-3 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
             How It Works
           </h2>
-          <p className="text-zinc-400">
+          <p className="text-gray-600">
             Three simple steps to your perfect resume
           </p>
         </div>
@@ -57,13 +57,13 @@ export function LandingHowItWorksSection() {
               </div>
 
               {/* Icon */}
-              <div className="mb-4 text-indigo-400">{step.icon}</div>
+              <div className="mb-4 text-indigo-500">{step.icon}</div>
 
               {/* Title */}
-              <h3 className="mb-2 text-lg font-semibold text-white">{step.title}</h3>
+              <h3 className="mb-2 text-lg font-semibold text-gray-900">{step.title}</h3>
 
               {/* Description */}
-              <p className="text-sm text-zinc-400">{step.description}</p>
+              <p className="text-sm text-gray-600">{step.description}</p>
             </div>
           ))}
         </div>

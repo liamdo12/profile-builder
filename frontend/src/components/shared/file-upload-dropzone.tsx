@@ -1,4 +1,4 @@
-import { useRef, useState, useCallback } from 'react'
+import { useRef, useState, useCallback, useEffect } from 'react'
 import { Upload, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -10,6 +10,7 @@ interface FileUploadDropzoneProps {
   onFilesChange: (files: File[]) => void
   disabled?: boolean
   hint?: string
+  enablePaste?: boolean
 }
 
 export function FileUploadDropzone({
@@ -19,6 +20,7 @@ export function FileUploadDropzone({
   onFilesChange,
   disabled = false,
   hint,
+  enablePaste = false,
 }: FileUploadDropzoneProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [isDragging, setIsDragging] = useState(false)
@@ -29,10 +31,16 @@ export function FileUploadDropzone({
     (file: File) => {
       if (acceptExtensions.length === 0) return true
       const fileName = file.name.toLowerCase()
-      return acceptExtensions.some((ext) => fileName.endsWith(ext))
+      if (acceptExtensions.some((ext) => fileName.endsWith(ext))) return true
+      // Pasted images may not match file extensions, check MIME type
+      if (enablePaste && file.type.startsWith('image/')) {
+        const imageExts = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp']
+        return acceptExtensions.some((ext) => imageExts.includes(ext))
+      }
+      return false
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [accept]
+    [accept, enablePaste]
   )
 
   const handleFiles = useCallback(
@@ -44,6 +52,38 @@ export function FileUploadDropzone({
     },
     [files, maxFiles, isAccepted, onFilesChange]
   )
+
+  useEffect(() => {
+    if (!enablePaste || disabled) return
+
+    const handlePaste = (e: ClipboardEvent) => {
+      const items = e.clipboardData?.items
+      if (!items) return
+
+      const imageFiles: File[] = []
+      for (const item of Array.from(items)) {
+        if (item.type.startsWith('image/')) {
+          const file = item.getAsFile()
+          if (file) {
+            const namedFile = new File(
+              [file],
+              `pasted-image-${Date.now()}.png`,
+              { type: file.type }
+            )
+            imageFiles.push(namedFile)
+          }
+        }
+      }
+
+      if (imageFiles.length > 0) {
+        e.preventDefault()
+        handleFiles(imageFiles)
+      }
+    }
+
+    document.addEventListener('paste', handlePaste)
+    return () => document.removeEventListener('paste', handlePaste)
+  }, [enablePaste, disabled, handleFiles])
 
   const handleDrop = useCallback(
     (e: React.DragEvent) => {
@@ -80,6 +120,9 @@ export function FileUploadDropzone({
         <Upload className="h-10 w-10 text-muted-foreground/50 mb-3" />
         <p className="text-sm font-medium">Click or drag file to this area</p>
         {hint && <p className="text-xs text-muted-foreground mt-1">{hint}</p>}
+        {enablePaste && (
+          <p className="text-xs text-muted-foreground/70 mt-0.5">or paste image (Cmd+V)</p>
+        )}
       </div>
 
       <input

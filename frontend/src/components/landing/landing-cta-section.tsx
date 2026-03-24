@@ -12,15 +12,15 @@ export function LandingCtaSection() {
   return (
     <section className="relative z-20 w-full px-4 py-24">
       <div className="mx-auto max-w-3xl text-center">
-        {/* Glow behind CTA */}
+        {/* Soft glow behind CTA */}
         <div className="absolute inset-0 -z-10 flex items-center justify-center">
-          <div className="h-64 w-96 rounded-full bg-purple-500/15 blur-[100px]" />
+          <div className="h-64 w-96 rounded-full bg-purple-200/40 blur-[100px]" />
         </div>
 
-        <h2 className="mb-4 text-3xl font-bold tracking-tight text-white sm:text-4xl">
+        <h2 className="mb-4 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
           Ready to Build Your Perfect Resume?
         </h2>
-        <p className="mb-8 text-lg text-zinc-400">
+        <p className="mb-8 text-lg text-gray-600">
           Join thousands of job seekers who have landed their dream jobs with AI-powered resumes.
         </p>
         <Button size="lg" className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40" asChild>

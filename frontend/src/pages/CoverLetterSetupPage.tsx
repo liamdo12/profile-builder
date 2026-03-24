@@ -2,24 +2,23 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
-import { DataTable } from '@/components/shared/data-table'
-import type { Column } from '@/components/shared/data-table'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { FileUploadDropzone } from '@/components/shared/file-upload-dropzone'
 import { PageHeader } from '@/components/shared/page-header'
 import { GenerationOverlay } from '@/components/shared/generation-overlay'
-import { fetchDocuments, uploadDocument } from '../api/documentApi'
+import { DocumentSection } from '@/components/cover-letter/document-section'
+import { fetchDocuments, uploadDocument, deleteDocument } from '../api/documentApi'
 import { generateCoverLetter } from '../api/cover-letter-api'
 import type { DocumentUploadResponse } from '../types/document'
-
-const docColumns: Column<DocumentUploadResponse>[] = [
-  { key: 'originalName', header: 'File Name' },
-  {
-    key: 'createdAt',
-    header: 'Uploaded',
-    width: '150px',
-    render: (val) => new Date(val as string).toLocaleDateString(),
-  },
-]
 
 export default function CoverLetterSetupPage() {
   const navigate = useNavigate()
@@ -30,6 +29,7 @@ export default function CoverLetterSetupPage() {
   const [selectedCoverLetterId, setSelectedCoverLetterId] = useState<number | null>(null)
   const [jdFile, setJdFile] = useState<File | null>(null)
   const [loading, setLoading] = useState(false)
+  const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null)
 
   const jdFiles = jdFile ? [jdFile] : []
 
@@ -70,6 +70,37 @@ export default function CoverLetterSetupPage() {
     }
   }
 
+  const handleDeleteResume = async (id: number) => {
+    try {
+      await deleteDocument(id)
+      setResumes((prev) => prev.filter((d) => d.id !== id))
+      if (selectedResumeId === id) setSelectedResumeId(null)
+      setDeleteTargetId(null)
+      toast.success('Resume deleted')
+    } catch {
+      toast.error('Failed to delete resume')
+    }
+  }
+
+  const handleDeleteCoverLetter = async (id: number) => {
+    try {
+      await deleteDocument(id)
+      setCoverLetters((prev) => prev.filter((d) => d.id !== id))
+      if (selectedCoverLetterId === id) setSelectedCoverLetterId(null)
+      setDeleteTargetId(null)
+      toast.success('Cover letter deleted')
+    } catch {
+      toast.error('Failed to delete cover letter')
+    }
+  }
+
+  const handleConfirmDelete = () => {
+    if (!deleteTargetId) return
+    const isResume = resumes.some((r) => r.id === deleteTargetId)
+    if (isResume) handleDeleteResume(deleteTargetId)
+    else handleDeleteCoverLetter(deleteTargetId)
+  }
+
   const handleGenerate = async () => {
     if (!jdFile || !selectedResumeId || !selectedCoverLetterId) return
     setLoading(true)
@@ -88,58 +119,49 @@ export default function CoverLetterSetupPage() {
   return (
     <>
       <GenerationOverlay visible={loading} />
+
       <div className="mx-auto max-w-full sm:max-w-3xl">
         <PageHeader title="Cover Letter Generator" />
 
-        <h4 className="text-lg font-medium mb-3">1. Upload Job Description</h4>
-        <FileUploadDropzone
-          accept=".pdf,.png"
-          files={jdFiles}
-          onFilesChange={(f) => setJdFile(f[0] ?? null)}
-          hint="Supports PDF or PNG. Max 1 file."
-        />
+        {/* Step 1: Job Description */}
+        <div className="rounded-lg border p-4">
+          <h4 className="text-lg font-medium mb-3">1. Upload Job Description</h4>
+          <FileUploadDropzone
+            accept=".pdf,.png"
+            files={jdFiles}
+            onFilesChange={(f) => setJdFile(f[0] ?? null)}
+            hint="Supports PDF or PNG. Max 1 file."
+            enablePaste
+          />
+        </div>
 
-        <h4 className="text-lg font-medium mt-8 mb-3">2. Select Resume</h4>
-        <DataTable
-          columns={docColumns}
-          data={resumes}
-          rowKey="id"
+        {/* Step 2: Resume */}
+        <DocumentSection
+          stepNumber={2}
+          title="Select Resume"
+          documents={resumes}
+          selectedId={selectedResumeId}
+          onSelect={setSelectedResumeId}
+          onUpload={handleUploadResume}
+          onDeleteRequest={setDeleteTargetId}
+          uploadHint="Upload a new resume (PDF)"
           emptyText="No resumes found"
-          rowSelection={{
-            selectedKeys: selectedResumeId !== null ? [selectedResumeId] : [],
-            onChange: (keys) =>
-              setSelectedResumeId(keys.length > 0 ? (keys[keys.length - 1] as number) : null),
-          }}
+          className="mt-6"
         />
-        <div className="mt-3">
-          <FileUploadDropzone
-            accept=".pdf"
-            files={[]}
-            onFilesChange={(f) => f[0] && handleUploadResume(f[0])}
-            hint="Upload a new resume (PDF)"
-          />
-        </div>
 
-        <h4 className="text-lg font-medium mt-8 mb-3">3. Select Cover Letter Template</h4>
-        <DataTable
-          columns={docColumns}
-          data={coverLetters}
-          rowKey="id"
+        {/* Step 3: Cover Letter Template */}
+        <DocumentSection
+          stepNumber={3}
+          title="Select Cover Letter Template"
+          documents={coverLetters}
+          selectedId={selectedCoverLetterId}
+          onSelect={setSelectedCoverLetterId}
+          onUpload={handleUploadCoverLetter}
+          onDeleteRequest={setDeleteTargetId}
+          uploadHint="Upload a new cover letter template (PDF)"
           emptyText="No cover letters found"
-          rowSelection={{
-            selectedKeys: selectedCoverLetterId !== null ? [selectedCoverLetterId] : [],
-            onChange: (keys) =>
-              setSelectedCoverLetterId(keys.length > 0 ? (keys[keys.length - 1] as number) : null),
-          }}
+          className="mt-6"
         />
-        <div className="mt-3">
-          <FileUploadDropzone
-            accept=".pdf"
-            files={[]}
-            onFilesChange={(f) => f[0] && handleUploadCoverLetter(f[0])}
-            hint="Upload a new cover letter template (PDF)"
-          />
-        </div>
 
         <Button
           size="lg"
@@ -150,6 +172,25 @@ export default function CoverLetterSetupPage() {
           {loading ? 'Generating...' : 'Generate Cover Letter'}
         </Button>
       </div>
+
+      {/* Delete confirmation dialog */}
+      <AlertDialog
+        open={deleteTargetId !== null}
+        onOpenChange={(open) => !open && setDeleteTargetId(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Document</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this document? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmDelete}>Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   )
 }
